@@ -1,0 +1,4 @@
+[package]
+name = "lwmesh"
+version = "0.1.0"
+authors = ["Thibaud Lambert <thibaud.lambert@gmail.com>"]
