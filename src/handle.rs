@@ -33,10 +33,29 @@ mod tests {
     use super::*;
 
     #[test]
+    fn base_handle_invalid() {
+        let handle = BaseHandle::invalid();
+        assert!(!handle.is_valid());
+        assert!(handle.idx().is_none());
+    }
+
+    #[test]
     fn base_handle_idx() {
-        let invalid_handle = BaseHandle::invalid();
-        let handle = BaseHandle::new(3);
-        assert!(!invalid_handle.is_valid());
+        let idx = 42;
+        let handle = BaseHandle::new(idx);
         assert!(handle.is_valid());
+
+        assert!(handle.idx().is_some());
+        assert!(handle.idx().unwrap() == idx);
+    }
+
+    #[test]
+    fn base_handle_reset() {
+        let idx = 42;
+        let mut handle = BaseHandle::new(idx);
+        assert!(handle.is_valid());
+
+        handle.reset();
+        assert!(!handle.is_valid());
     }
 }
