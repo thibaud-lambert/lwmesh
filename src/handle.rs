@@ -10,9 +10,9 @@ pub type Face = BaseHandle<PhantomFace>;
 pub type Edge = BaseHandle<PhantomEdge>;
 pub type Halfedge = BaseHandle<PhantomHalfedge>;
 
-struct BaseHandle<A> {
+pub struct BaseHandle<A> {
     type_ : PhantomData<A>,
-    index_ : Option<u32>,
+    index_ : Option<usize>,
 }
 
 impl<A> BaseHandle<A> {
@@ -23,14 +23,14 @@ impl<A> BaseHandle<A> {
         }
     }
 
-    pub fn new(idx : u32) -> BaseHandle<A> {
+    pub fn new(idx : usize) -> BaseHandle<A> {
         BaseHandle {
             type_ : PhantomData,
             index_ : Some(idx),
         }
     }
 
-    pub fn idx(&self) -> Option<u32> {
+    pub fn idx(&self) -> Option<usize> {
         self.index_
     }
 
