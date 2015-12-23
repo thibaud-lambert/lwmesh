@@ -9,27 +9,27 @@ struct PhantomFace;
 struct PhantomEdge;
 #[derive(Copy, Clone)]
 struct PhantomHalfedge;
-pub type Vertex = BaseHandle<PhantomVertex>;
-pub type Face = BaseHandle<PhantomFace>;
-pub type Edge = BaseHandle<PhantomEdge>;
-pub type Halfedge = BaseHandle<PhantomHalfedge>;
+pub type Vertex = Handle<PhantomVertex>;
+pub type Face = Handle<PhantomFace>;
+pub type Edge = Handle<PhantomEdge>;
+pub type Halfedge = Handle<PhantomHalfedge>;
 
 #[derive(Copy, Clone)]
-pub struct BaseHandle<A> {
+pub struct Handle<A> {
     type_ : PhantomData<A>,
     index_ : Option<usize>,
 }
 
-impl<A> BaseHandle<A> {
-    pub fn invalid() -> BaseHandle<A> {
-        BaseHandle {
+impl<A> Handle<A> {
+    pub fn invalid() -> Handle<A> {
+        Handle {
             type_ : PhantomData,
             index_ : None,
         }
     }
 
-    pub fn new(idx : usize) -> BaseHandle<A> {
-        BaseHandle {
+    pub fn new(idx : usize) -> Handle<A> {
+        Handle {
             type_ : PhantomData,
             index_ : Some(idx),
         }
@@ -48,24 +48,24 @@ impl<A> BaseHandle<A> {
     }
 }
 
-impl<A> Ord for BaseHandle<A> {
+impl<A> Ord for Handle<A> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.index_.cmp(&other.index_)
     }
 }
 
-impl<A> PartialOrd for BaseHandle<A> {
+impl<A> PartialOrd for Handle<A> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.index_.cmp(&other.index_))
     }
 }
 
-impl<A> PartialEq for BaseHandle<A> {
+impl<A> PartialEq for Handle<A> {
     fn eq(&self, other: &Self) -> bool {
         self.index_ == other.index_
     }
 }
-impl<A> Eq for BaseHandle<A> { }
+impl<A> Eq for Handle<A> { }
 
 #[cfg(test)]
 mod tests {

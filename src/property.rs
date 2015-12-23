@@ -8,16 +8,16 @@ pub struct Property<H,D> {
     data_ : Vec<D>,
 }
 
-impl<T,D> Index<BaseHandle<T> > for Property<BaseHandle<T>,D> {
+impl<T,D> Index<Handle<T> > for Property<Handle<T>,D> {
     type Output = D;
 
-    fn index<'a>(&'a self, _index: BaseHandle<T>) -> &'a D {
+    fn index<'a>(&'a self, _index: Handle<T>) -> &'a D {
         return & self.data_[_index.idx().unwrap()];
     }
 }
 
-impl<T,D> IndexMut<BaseHandle<T> > for Property<BaseHandle<T> ,D> {
-    fn index_mut<'a>(&'a mut self, _index: BaseHandle<T>) -> &'a mut D {
+impl<T,D> IndexMut<Handle<T> > for Property<Handle<T> ,D> {
+    fn index_mut<'a>(&'a mut self, _index: Handle<T>) -> &'a mut D {
         return &mut self.data_[_index.idx().unwrap()];
     }
 }
