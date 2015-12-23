@@ -9,11 +9,16 @@ struct PhantomFace;
 struct PhantomEdge;
 #[derive(Copy, Clone)]
 struct PhantomHalfedge;
+
 pub type Vertex = Handle<PhantomVertex>;
 pub type Face = Handle<PhantomFace>;
 pub type Edge = Handle<PhantomEdge>;
 pub type Halfedge = Handle<PhantomHalfedge>;
 
+/// A basic handle
+///
+/// `Handle<A>` is a nice encapsulation for an `usize`. It's an elegant way to manipulate 
+/// elements (`Vertex`, `Face`, `Edge`, `Halfedge`).
 #[derive(Copy, Clone)]
 pub struct Handle<A> {
     type_ : PhantomData<A>,
@@ -21,6 +26,15 @@ pub struct Handle<A> {
 }
 
 impl<A> Handle<A> {
+    /// Constructs an invalid `Handle<A>`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::handle::Vertex;
+    ///
+    /// let v = Vertex::invalid();
+    /// ```
     pub fn invalid() -> Handle<A> {
         Handle {
             type_ : PhantomData,
@@ -28,6 +42,15 @@ impl<A> Handle<A> {
         }
     }
 
+    /// Constructs a new `Handle<A>`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::handle::Vertex;
+    ///
+    /// let v = Vertex::new(3);
+    /// ```
     pub fn new(idx : usize) -> Handle<A> {
         Handle {
             type_ : PhantomData,
@@ -35,14 +58,45 @@ impl<A> Handle<A> {
         }
     }
 
+    /// Returns the index of the given `Handle<A>`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::handle::Vertex;
+    ///
+    /// let v = Vertex::new(42);
+    /// assert!(v.idx().unwrap()==42);
+    /// ```
     pub fn idx(&self) -> Option<usize> {
         self.index_
     }
 
+    /// Reset the `Handle<A>`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::handle::Vertex;
+    ///
+    /// let mut v = Vertex::new(42);
+    /// v.reset();
+    /// assert!(!v.is_valid());
+    /// ```
     pub fn reset(&mut self) {
         self.index_ = None;
     }
 
+    /// Returns if the `Handle<A>` is valid.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::handle::Vertex;
+    ///
+    /// let mut v = Vertex::new(42);
+    /// assert!(v.is_valid());
+    /// ```
     pub fn is_valid(&self) -> bool {
         self.index_.is_some()
     }
