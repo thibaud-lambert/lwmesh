@@ -105,15 +105,28 @@ impl<T, D : Clone> Property<Handle<T>,D> {
     /// let mut prop = Property::<Vertex,u32>::new();
     /// assert!(prop.len() == 0);
     /// prop.resize(13,17);
-    /// assert!(prop.len() == 13)
+    /// assert!(prop.len() == 13);
     /// ```
     pub fn len(&self) -> usize() {
         self.data_.len()
     }
 
+    /// Adds a new `value` to the `Property<H,D>`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::property::Property;
+    /// use lwmesh::handle::Vertex;
+    ///
+    /// let mut prop = Property::<Vertex,u32>::new();
+    /// assert!(prop.len() == 0);
+    /// prop.push(17);
+    /// assert!(prop.len() == 1);
+    /// ```
     pub fn push(&mut self, value : D) -> Handle<T> {
         self.data_.push(value);
-        Handle::new(self.data_.len())
+        Handle::new(self.data_.len()-1)
     }
 }
 
@@ -192,5 +205,24 @@ mod tests {
         property.resize(size,val);
         let v1 = Vertex::invalid();
         property[v1] = 0;
+    }
+
+    #[test]
+    fn push() {
+        let mut prop = Property::<Vertex,u32>::new();
+        assert!(prop.data_.len()==0);
+
+        let v0 = prop.push(17);
+        assert!(v0.idx().unwrap() == 0);
+        assert!(prop.data_.len()==1);
+
+        let v1 = prop.push(42);
+        assert!(v1.idx().unwrap() == 1);
+        assert!(prop.data_.len()==2);
+
+        prop.push(19);
+        let v3 = prop.push(8);
+        assert!(v3.idx().unwrap() == 3);
+        assert!(prop.data_.len()==4);
     }
 }
