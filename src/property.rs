@@ -11,7 +11,7 @@ pub struct Property<H,D> {
     data_ : Vec<D>,
 }
 
-impl<H, D : Clone> Property<H,D> {
+impl<T, D : Clone> Property<Handle<T>,D> {
 
     /// Constructs a new `Property<H,D>`.
     ///
@@ -23,7 +23,7 @@ impl<H, D : Clone> Property<H,D> {
     ///
     /// let prop = Property::<Vertex,u32>::new();
     /// ```
-    pub fn new() -> Property<H,D>{
+    pub fn new() -> Property<Handle<T>,D>{
         Property {
             type_ : PhantomData,
             data_ : Vec::new()
@@ -109,6 +109,11 @@ impl<H, D : Clone> Property<H,D> {
     /// ```
     pub fn len(&self) -> usize() {
         self.data_.len()
+    }
+
+    pub fn push(&mut self, value : D) -> Handle<T> {
+        self.data_.push(value);
+        Handle::new(self.data_.len())
     }
 }
 
