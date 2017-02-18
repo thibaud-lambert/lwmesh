@@ -2,13 +2,13 @@ use std::marker::PhantomData;
 use std::cmp::Ordering;
 
 #[derive(Copy, Clone)]
-struct PhantomVertex;
+pub struct PhantomVertex;
 #[derive(Copy, Clone)]
-struct PhantomFace;
+pub struct PhantomFace;
 #[derive(Copy, Clone)]
-struct PhantomEdge;
+pub struct PhantomEdge;
 #[derive(Copy, Clone)]
-struct PhantomHalfedge;
+pub struct PhantomHalfedge;
 
 pub type Vertex = Handle<PhantomVertex>;
 pub type Face = Handle<PhantomFace>;
@@ -17,7 +17,7 @@ pub type Halfedge = Handle<PhantomHalfedge>;
 
 /// A basic handle
 ///
-/// `Handle<A>` is a nice encapsulation for an `usize`. It's an elegant way to manipulate 
+/// `Handle<A>` is a nice encapsulation for an `usize`. It's an elegant way to manipulate
 /// elements (`Vertex`, `Face`, `Edge`, `Halfedge`).
 #[derive(Copy, Clone)]
 pub struct Handle<A> {
