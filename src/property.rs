@@ -1,228 +1,375 @@
 use std::marker::PhantomData;
-use std::ops::Index;
-use std::ops::IndexMut;
+use std::any::Any;
 use handle::*;
 
-/// A growable list type, to store data for the different `Handle`.
-///
-/// `H` is the type of the Handle to acces the data. `D` is the type the data.
-pub struct Property<H,D> {
-    type_ : PhantomData<H>,
-    data_ : Vec<D>,
+trait ResizableVec {
+    fn reserve(&mut self, size : usize);
+    fn capacity(&self) -> usize;
+    fn push(&mut self);
+    fn as_any(&self) -> &Any;
+    fn as_any_mut(&mut self) -> &mut Any;
 }
 
-impl<T, D : Clone> Property<Handle<T>,D> {
+struct GenericVec<D : 'static> {
+    default_ : D,
+    data_ : Vec<D>
+}
 
-    /// Constructs a new `Property<H,D>`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use lwmesh::property::Property;
-    /// use lwmesh::handle::Vertex;
-    ///
-    /// let prop = Property::<Vertex,u32>::new();
-    /// ```
-    pub fn new() -> Property<Handle<T>,D>{
-        Property {
-            type_ : PhantomData,
+impl<D : 'static> GenericVec<D> {
+    pub fn new(default_value : D) -> GenericVec<D> {
+        GenericVec {
+            default_ : default_value,
             data_ : Vec::new()
         }
     }
+}
 
-    /// Reserve the minimun capacity to store at least `size` elements in the given `Property<H,D>`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use lwmesh::property::Property;
-    /// use lwmesh::handle::Vertex;
-    ///
-    /// let mut prop = Property::<Vertex,u32>::new();
-    /// prop.reserve(42);
-    /// assert!(prop.capacity() >= 42);
-    /// ```
-    pub fn reserve(&mut self, size : usize) {
+impl<D : Clone> ResizableVec for GenericVec<D> {
+    fn reserve(&mut self, size : usize) {
         self.data_.reserve(size);
     }
 
-    /// Returns the number of elements the given `Property<H,D>` can hold without reallocating.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use lwmesh::property::Property;
-    /// use lwmesh::handle::Vertex;
-    ///
-    /// let mut prop = Property::<Vertex,u32>::new();
-    /// assert!(prop.capacity() == 0);
-    /// prop.reserve(42);
-    /// assert!(prop.capacity() >= 42);
-    /// ```
-    pub fn capacity(& self) -> usize {
+    fn capacity(& self) -> usize {
         self.data_.capacity()
     }
 
-    /// Resize the given `Property<H,D>` to have exactly `size` elements.
-    ///
-    /// If the actual size of the property is less than `size`, elements with value `value` are
-    /// added to the property so that the size matches. Otherwise elements are removed from the
-    /// vector until the size matches.
+    fn push(&mut self) {
+        self.data_.push(self.default_.clone());
+    }
+
+    fn as_any(&self) -> &Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut Any {
+        self
+    }
+}
+
+/// A growable list type, to store data for the different `Handle`.
+///
+/// `H` is the type of the Handle to acces the data.
+pub struct PropertyContainer<H> {
+    handle_ : PhantomData<H>,
+    parrays_ : Vec<(& 'static str,Box<ResizableVec>)>,
+    size_ : usize,
+    capacity_ : usize
+}
+
+impl<T : 'static> PropertyContainer<Handle<T>> {
+    /// Constructs a new `PropertyContainer`.
     ///
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::property::Property;
+    /// use lwmesh::property::PropertyContainer;
     /// use lwmesh::handle::Vertex;
     ///
-    /// let mut prop = Property::<Vertex,u32>::new();
-    /// prop.resize(13,17);
+    /// let pcontainer = PropertyContainer::<Vertex>::new();
     /// ```
-    pub fn resize(&mut self, size : usize, value : D) {
-        let n = self.data_.len();
-        if n < size {
-            self.data_.reserve(size);
-            let m = size-n;
-            for _ in 0..m {
-                self.data_.push(value.clone());
-            }
-        } else {
-            let m = n-size;
-            for _ in 0..m {
-                self.data_.pop();
-            }
+    pub fn new() -> PropertyContainer<Handle<T>>{
+        PropertyContainer {
+            handle_ : PhantomData,
+            parrays_ : Vec::new(),
+            size_ : 0,
+            capacity_ : 0
         }
     }
 
-    /// Returns the number of elements in the `Property<H,D>`.
+    /// Returns the number of elements in the `PropertyContainer`.
     ///
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::property::Property;
+    /// use lwmesh::property::PropertyContainer;
     /// use lwmesh::handle::Vertex;
     ///
-    /// let mut prop = Property::<Vertex,u32>::new();
-    /// assert!(prop.len() == 0);
-    /// prop.resize(13,17);
-    /// assert!(prop.len() == 13);
+    /// let mut pcontainer = PropertyContainer::<Vertex>::new();
+    /// assert!(pcontainer.len() == 0);
+    /// pcontainer.push();
+    /// assert!(pcontainer.len() == 1);
     /// ```
     pub fn len(&self) -> usize() {
-        self.data_.len()
+        self.size_
     }
 
-    /// Adds a new `value` to the `Property<H,D>`.
+    /// Reserve the minimun capacity to store at least `size` elements in the given `PropertyContainer`.
     ///
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::property::Property;
+    /// use lwmesh::property::PropertyContainer;
     /// use lwmesh::handle::Vertex;
     ///
-    /// let mut prop = Property::<Vertex,u32>::new();
-    /// assert!(prop.len() == 0);
-    /// prop.push(17);
-    /// assert!(prop.len() == 1);
+    /// let mut pcontainer = PropertyContainer::<Vertex>::new();
+    /// pcontainer.reserve(42);
+    /// assert!(pcontainer.capacity() >= 42);
     /// ```
-    pub fn push(&mut self, value : D) -> Handle<T> {
-        self.data_.push(value);
-        Handle::new(self.data_.len()-1)
+    pub fn reserve(&mut self, size : usize) {
+        self.capacity_ = size;
+        for &mut(_, ref mut b) in self.parrays_.iter_mut() {
+            b.reserve(size);
+        }
+    }
+
+    /// Returns the number of elements the given `PropertyContainer` can hold without reallocating.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::property::PropertyContainer;
+    /// use lwmesh::handle::Vertex;
+    ///
+    /// let mut pcontainer = PropertyContainer::<Vertex>::new();
+    /// assert!(pcontainer.capacity() == 0);
+    /// pcontainer.reserve(42);
+    /// assert!(pcontainer.capacity() >= 42);
+    /// ```
+    pub fn capacity(& self) -> usize {
+        self.capacity_
+    }
+
+    /// Add a property with default value. If a property with this name already exists, return `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::property::PropertyContainer;
+    /// use lwmesh::handle::Vertex;
+    ///
+    /// let mut pcontainer = PropertyContainer::<Vertex>::new();
+    ///
+    /// let prop = pcontainer.add::<u32>("my_prop",0);
+    /// assert!(prop.is_valid());
+    ///
+    /// let prop = pcontainer.add::<u32>("my_prop",0);
+    /// assert!(!prop.is_valid());
+    /// ```
+    pub fn add<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> Property {
+        for &(n, _) in self.parrays_.iter() {
+            if n == name {
+                return Property::invalid();
+            }
+        }
+        let mut gv = GenericVec::new(default_value);
+        gv.data_.reserve(self.capacity_);
+        for _ in 0..self.size_ {
+            gv.data_.push(gv.default_.clone());
+        }
+        let p = Box::new(gv);
+        self.parrays_.push((name,p));
+        return Property::new(self.parrays_.len()-1);
+    }
+
+    /// Get a property by its name. If it does not exist, return `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::property::PropertyContainer;
+    /// use lwmesh::handle::Vertex;
+    ///
+    /// let mut pcontainer = PropertyContainer::<Vertex>::new();
+    ///
+    /// let prop = pcontainer.get::<u32>("my_prop");
+    /// assert!(!prop.is_valid());
+    ///
+    /// let prop = pcontainer.add::<u32>("my_prop",0);
+    /// assert!(prop.is_valid());
+    ///
+    /// let prop = pcontainer.get::<u32>("my_prop");
+    /// assert!(prop.is_valid());
+    /// ```
+    pub fn get<D : 'static + Clone>(&self, name : & 'static str) -> Property {
+        for (i, &(n, ref b)) in self.parrays_.iter().enumerate() {
+            if n == name {
+                if b.as_any().downcast_ref::<GenericVec<D>>().is_some() {
+                    return Property::new(i);
+                }
+            }
+        }
+        return Property::invalid();
+    }
+
+    /// Adds a new element to all existing Property.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// ```
+    /// use lwmesh::property::PropertyContainer;
+    /// use lwmesh::handle::Vertex;
+    ///
+    /// let mut pcontainer = PropertyContainer::<Vertex>::new();
+    ///
+    /// let prop = pcontainer.add::<u32>("my_prop",17);
+    /// assert!(prop.is_valid());
+    /// assert_eq!(prop.len(),0);
+    /// let v = prop.push();
+    /// assert_eq!(prop.len(),1);
+    /// assert!(v.is_valid());
+    /// ```
+    pub fn push(&mut self) -> Handle<T> {
+        self.size_ += 1;
+        for &mut(_, ref mut b) in self.parrays_.iter_mut() {
+            b.push();
+        }
+        Handle::new(self.size_-1)
+    }
+
+    /// Acces a property by its name. If it does not exist, return `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::property::PropertyContainer;
+    /// use lwmesh::handle::Vertex;
+    ///
+    /// let mut pcontainer = PropertyContainer::<Vertex>::new();
+    ///
+    /// let prop = pcontainer.add::<u32>("my_prop",17);
+    /// assert!(prop.is_valid());
+    ///
+    /// let v = pcontainer.push();
+    ///
+    /// assert_eq!(*pcontainer.access::<u32>(prop,v),17);
+    ///
+    /// ```
+    pub fn access<D : 'static>(&self, prop : Property, h : Handle<T>) -> &D {
+        let (_,ref b) = self.parrays_[prop.idx().unwrap()];
+        let pa : &GenericVec<D> = b.as_any().downcast_ref::<GenericVec<D>>().unwrap();
+        return &pa.data_[h.idx().unwrap()];
+    }
+
+    /// Acces a property by its name. If it does not exist, return `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::property::PropertyContainer;
+    /// use lwmesh::handle::Vertex;
+    ///
+    /// let mut pcontainer = PropertyContainer::<Vertex>::new();
+    ///
+    /// let prop = pcontainer.add::<u32>("my_prop",17);
+    /// assert!(prop.is_valid());
+    ///
+    /// let v = pcontainer.push();
+    ///
+    /// assert_eq!(*pcontainer.access::<u32>(prop,v),17u32);
+    ///
+    /// *pcontainer.access_mut::<u32>(prop,v) = 42;
+    ///
+    /// assert_eq!(*pcontainer.access::<u32>(prop,v),42u32);
+    ///
+    /// ```
+    pub fn access_mut<D : 'static>(&mut self, prop : Property, h : Handle<T>) -> &mut D {
+        let (_,ref mut b) = self.parrays_[prop.idx().unwrap()];
+        let pa : &mut GenericVec<D> = b.as_any_mut().downcast_mut::<GenericVec<D>>().unwrap();
+        return &mut pa.data_[h.idx().unwrap()];
     }
 }
 
-impl<T,D> Index<Handle<T> > for Property<Handle<T>,D> {
-    type Output = D;
-
-    fn index<'a>(&'a self, _index: Handle<T>) -> &'a D {
-        return & self.data_[_index.idx().unwrap()];
-    }
-}
-
-impl<T,D> IndexMut<Handle<T> > for Property<Handle<T> ,D> {
-    fn index_mut<'a>(&'a mut self, _index: Handle<T>) -> &'a mut D {
-        return &mut self.data_[_index.idx().unwrap()];
-    }
+pub trait PropertyAccess<H> {
+    fn access<D : 'static + Clone>(&self, prop : Property, h : H) -> &D;
+    fn access_mut<D : 'static + Clone>(&mut self, prop : Property, h : H) -> &mut D;
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use handle::*;
+    use property::GenericVec;
+    use property::ResizableVec;
 
     #[test]
     fn reserve() {
-        let mut property = Property::<Vertex,u32>::new();
-        property.reserve(16);
-        assert!(16 <= property.capacity());
-        property.reserve(33);
-        assert!(33 <= property.capacity());
-    }
-
-    #[test]
-    fn resize() {
-        let mut property = Property::<Vertex,u32>::new();
-        let size = 5;
-        let val = 42;
-        property.resize(size,val);
-        assert!(property.len() == size);
-        property.resize(size-3,val);
-        assert!(property.len() == size-3);
-    }
-
-    #[test]
-    fn index() {
-        let mut property = Property::new();
-        let size = 8;
-        let val = 42;
-        property.resize(size,val);
-        let v1 = Vertex::new(3);
-        assert!(property[v1] == 42);
-        property[v1] = 23;
-        assert!(property[v1] == 23);
-
-        let ref property_const = & property;
-        let v2 = Vertex::new(0);
-        assert!(property_const[v2] == 42);
-    }
-
-    #[test]
-    #[should_panic]
-    fn index_out_of_bound() {
-        let mut property = Property::new();
-        let size = 8;
-        let val = 42;
-        property.resize(size,val);
-        let v1 = Vertex::new(8);
-        property[v1] = 0;
-    }
-
-    #[test]
-    #[should_panic]
-    fn index_none() {
-        let mut property = Property::new();
-        let size = 8;
-        let val = 42;
-        property.resize(size,val);
-        let v1 = Vertex::invalid();
-        property[v1] = 0;
+        let mut pcontainer = PropertyContainer::<Vertex>::new();
+        pcontainer.reserve(16);
+        assert!(16 <= pcontainer.capacity());
+        pcontainer.reserve(33);
+        assert!(33 <= pcontainer.capacity());
     }
 
     #[test]
     fn push() {
-        let mut prop = Property::<Vertex,u32>::new();
-        assert!(prop.data_.len()==0);
+        let mut pcontainer = PropertyContainer::<Vertex>::new();
+        assert!(pcontainer.len() == 0);
+        let size = 5;
+        for _ in 0..size {
+            pcontainer.push();
+        }
+        assert!(pcontainer.len() == size);
+    }
 
-        let v0 = prop.push(17);
-        assert!(v0.idx().unwrap() == 0);
-        assert!(prop.data_.len()==1);
+    #[test]
+    fn add() {
+        let mut pcontainer = PropertyContainer::<Vertex>::new();
+        let prop = pcontainer.add::<u32>("v:my_prop",17);
+        assert!(prop.is_valid());
+        let prop = pcontainer.add::<u32>("v:my_prop",17);
+        assert!(!prop.is_valid());
+    }
 
-        let v1 = prop.push(42);
-        assert!(v1.idx().unwrap() == 1);
-        assert!(prop.data_.len()==2);
+    #[test]
+    fn get() {
+        let mut pcontainer = PropertyContainer::<Vertex>::new();
+        let prop = pcontainer.get::<u32>("v:my_prop");
+        assert!(!prop.is_valid());
+        let prop = pcontainer.add::<u32>("v:my_prop",17);
+        assert!(prop.is_valid());
+        let prop = pcontainer.get::<u32>("v:my_prop");
+        assert!(prop.is_valid());
+    }
 
-        prop.push(19);
-        let v3 = prop.push(8);
-        assert!(v3.idx().unwrap() == 3);
-        assert!(prop.data_.len()==4);
+    #[test]
+    fn reserve_and_add() {
+        let mut pcontainer = PropertyContainer::<Vertex>::new();
+        pcontainer.reserve(17);
+        assert!(17 <= pcontainer.capacity());
+        let prop = pcontainer.add::<u32>("v:my_prop",0);
+        let (_,ref b) = pcontainer.parrays_[prop.idx().unwrap()];
+        let pa = b.as_any().downcast_ref::<GenericVec<u32>>().unwrap();
+        assert_eq!(pa.capacity(),17);
+    }
+
+    #[test]
+    fn push_and_add() {
+        let mut pcontainer = PropertyContainer::<Vertex>::new();
+        let v0 = pcontainer.push();
+        assert!(1 == pcontainer.len());
+        let prop = pcontainer.add::<u32>("v:my_prop",17);
+        let v1 = pcontainer.push();
+        assert!(2 == pcontainer.len());
+        assert_eq!(*pcontainer.access::<u32>(prop,v0),17);
+        assert_eq!(*pcontainer.access::<u32>(prop,v1),17);
+    }
+
+    #[test]
+    fn access() {
+        let mut pcontainer = PropertyContainer::<Vertex>::new();
+        let prop = pcontainer.add::<u32>("v:my_prop",17);
+        let v = pcontainer.push();
+        assert_eq!(*pcontainer.access::<u32>(prop,v),17);
+        *pcontainer.access_mut::<u32>(prop,v) = 42;
+        assert_eq!(*pcontainer.access::<u32>(prop,v),42);
+    }
+
+    #[test]
+    #[should_panic]
+    fn access_out_of_bound() {
+        let mut pcontainer = PropertyContainer::<Vertex>::new();
+        let v = Vertex::new(8);
+        let prop = pcontainer.add::<u32>("v:my_prop",17);
+        pcontainer.access::<u32>(prop,v);
+    }
+
+    #[test]
+    #[should_panic]
+    fn access_invalid() {
+        let mut pcontainer = PropertyContainer::<Vertex>::new();
+        let v = Vertex::invalid();
+        let prop = pcontainer.add::<u32>("v:my_prop",17);
+        pcontainer.access::<u32>(prop,v);
     }
 }

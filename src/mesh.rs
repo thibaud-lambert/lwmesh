@@ -1,11 +1,16 @@
-use property::Property;
+use property::PropertyContainer;
+use property::PropertyAccess;
 use handle::*;
 use connectivity::*;
 
 pub struct Mesh {
-    vconn_ : Property<Vertex,VertexConnectivity>,
-    hconn_ : Property<Halfedge,HalfedgeConnectivity>,
-    fconn_ : Property<Face,FaceConnectivity>,
+    vprop_ : PropertyContainer<Vertex>,
+    hprop_ : PropertyContainer<Halfedge>,
+    eprop_ : PropertyContainer<Edge>,
+    fprop_ : PropertyContainer<Face>,
+    vconn_ : Property,
+    hconn_ : Property,
+    fconn_ : Property,
 }
 
 impl Mesh {
@@ -19,11 +24,110 @@ impl Mesh {
     /// let m = Mesh::new();
     /// ```
     pub fn new() -> Mesh {
-        Mesh {
-            vconn_ : Property::new(),
-            hconn_ : Property::new(),
-            fconn_ : Property::new(),
-        }
+        let mut m = Mesh {
+            vprop_ : PropertyContainer::new(),
+            hprop_ : PropertyContainer::new(),
+            eprop_ : PropertyContainer::new(),
+            fprop_ : PropertyContainer::new(),
+            vconn_ : Property::invalid(),
+            hconn_ : Property::invalid(),
+            fconn_ : Property::invalid(),
+        };
+        m.vconn_ = m.vprop_.add::<VertexConnectivity>("v:connectivity",VertexConnectivity::invalid());
+        m.hconn_ = m.hprop_.add::<HalfedgeConnectivity>("h:connectivity",HalfedgeConnectivity::invalid());
+        m.fconn_ = m.fprop_.add::<FaceConnectivity>("f:connectivity",FaceConnectivity::invalid());
+        return m;
+    }
+
+    /// Reserve the minimun capacity to store at least `size` vertex.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    ///
+    /// let mut m = Mesh::new();
+    /// m.vertex_reserve(15);
+    /// assert_eq!(m.vertex_capacity(),15);
+    /// ```
+    pub fn vertex_reserve(&mut self, size : usize) {
+        self.vprop_.reserve(size);
+    }
+
+    /// Returns the number of vertex the given `Mesh` can hold without reallocating.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    ///
+    /// let mut m = Mesh::new();
+    /// m.vertex_reserve(15);
+    /// assert_eq!(m.vertex_capacity(),15);
+    /// ```
+    pub fn vertex_capacity(&mut self) -> usize {
+        self.vprop_.capacity()
+    }
+
+    /// Reserve the minimun capacity to store at least `size` face.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    ///
+    /// let mut m = Mesh::new();
+    /// m.face_reserve(17);
+    /// assert_eq!(m.face_capacity(),17);
+    /// ```
+    pub fn face_reserve(&mut self, size : usize) {
+        self.fprop_.reserve(size);
+    }
+
+    /// Returns the number of face the given `Mesh` can hold without reallocating.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    ///
+    /// let mut m = Mesh::new();
+    /// m.face_reserve(17);
+    /// assert_eq!(m.face_capacity(),17);
+    /// ```
+    pub fn face_capacity(&mut self) -> usize {
+        self.fprop_.capacity()
+    }
+
+    /// Reserve the minimun capacity to store at least `size` edge.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    ///
+    /// let mut m = Mesh::new();
+    /// m.edge_reserve(17);
+    /// assert_eq!(m.edge_capacity(),17);
+    /// ```
+    pub fn edge_reserve(&mut self, size : usize) {
+        self.eprop_.reserve(size);
+        self.hprop_.reserve(size*2);
+    }
+
+    /// Returns the number of edge the given `Mesh` can hold without reallocating.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    ///
+    /// let mut m = Mesh::new();
+    /// m.edge_reserve(17);
+    /// assert_eq!(m.edge_capacity(),17);
+    /// ```
+    pub fn edge_capacity(&mut self) -> usize {
+        self.eprop_.capacity()
     }
 
     /// Adds a new vertex to the `Mesh`
@@ -35,12 +139,10 @@ impl Mesh {
     ///
     /// let mut m = Mesh::new();
     /// let v = m.add_vertex();
+    /// assert!(v.is_valid());
     /// ```
     pub fn add_vertex(&mut self) -> Vertex {
-        let vc = VertexConnectivity {
-            halfedge_ : Halfedge::invalid()
-        };
-        self.vconn_.push(vc)
+        self.vprop_.push()
     }
 
     /// Returns the number of vertices in the `Mesh`.
@@ -56,7 +158,7 @@ impl Mesh {
     /// assert!(m.n_vertices() == 2);
     /// ```
     pub fn n_vertices(& self) -> usize {
-        self.vconn_.len()
+        self.vprop_.len()
     }
 
     /// Returns the number of faces in the `Mesh`
@@ -76,7 +178,27 @@ impl Mesh {
     /// assert!(m.n_faces() == 1);
     /// ```
     pub fn n_faces(& self) -> usize {
-        self.fconn_.len()
+        self.fprop_.len()
+    }
+
+    /// Returns the number of edges in the `Mesh`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::handle::Vertex;
+    ///
+    /// let mut m = Mesh::new();
+    /// let mut vvec = Vec::<Vertex>::new();
+    /// for _ in 0..3 {
+    ///    vvec.push(m.add_vertex());
+    /// }
+    /// let f = m.add_face(&vvec);
+    /// assert!(m.n_edges() == 3);
+    /// ```
+    pub fn n_edges(& self) -> usize {
+        self.eprop_.len()
     }
 
     /// Returns if the `Vertex` is on a boundary
@@ -136,7 +258,7 @@ impl Mesh {
     /// assert!(m.face(h) == f);
     /// ```
     pub fn face(&self, h : Halfedge) -> Face {
-        self.hconn_[h].face_
+        self.hprop_.access::<HalfedgeConnectivity>(self.hconn_,h).face_
     }
 
     /// Returns an outgoing `Haldedge` of `Vertex` `v`.
@@ -157,7 +279,29 @@ impl Mesh {
     /// assert!(m.from_vertex(h) == vvec[0]);
     /// ```
     pub fn halfedge(&self, v : Vertex) -> Halfedge {
-        self.vconn_[v].halfedge_
+        self.vprop_.access::<VertexConnectivity>(self.vconn_,v).halfedge_
+    }
+
+    /// Returns the `Edge`  that contains `Halfedge` h as one of its two halfedges.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::handle::Vertex;
+    ///
+    /// let mut m = Mesh::new();
+    /// let mut vvec = Vec::<Vertex>::new();
+    /// for _ in 0..3 {
+    ///     vvec.push(m.add_vertex());
+    /// }
+    /// let f = m.add_face(&vvec);
+    /// let h = m.halfedge(vvec[0]);
+    /// let ho = m.opposite_halfedge(h);
+    /// assert!(m.edge(h) == m.edge(ho));
+    /// ```
+    pub fn edge(&self, h : Halfedge) -> Edge {
+        Edge::new(h.idx().unwrap()/2)
     }
 
     /// Returns the `Vertex` the `Halfedge` h points to.
@@ -178,7 +322,7 @@ impl Mesh {
     /// assert!(m.to_vertex(h) == vvec[1]);
     /// ```
     pub fn to_vertex(&self, h : Halfedge) -> Vertex {
-        self.hconn_[h].vertex_
+        self.hprop_.access::<HalfedgeConnectivity>(self.hconn_,h).vertex_
     }
 
     /// Returns the `Vertex` the `Halfedge` h emanates from.
@@ -199,7 +343,7 @@ impl Mesh {
     /// assert!(m.from_vertex(h) == vvec[0]);
     /// ```
     pub fn from_vertex(&self, h : Halfedge) -> Vertex {
-        self.hconn_[self.hconn_[h].prev_halfedge_].vertex_
+        self.to_vertex(self.prev_halfedge(h))
     }
 
     /// Returns the next `Halfedge` within the incident face.
@@ -224,7 +368,7 @@ impl Mesh {
     /// assert!(m.next_halfedge(h2) == h0);
     /// ```
     pub fn next_halfedge(&self, h : Halfedge) -> Halfedge {
-        self.hconn_[h].next_halfedge_
+        self.hprop_.access::<HalfedgeConnectivity>(self.hconn_,h).next_halfedge_
     }
 
     /// Returns the previous `Halfedge` within the incident face.
@@ -249,7 +393,7 @@ impl Mesh {
     /// assert!(m.prev_halfedge(h2) == h1);
     /// ```
     pub fn prev_halfedge(&self, h : Halfedge) -> Halfedge {
-        self.hconn_[h].prev_halfedge_
+        self.hprop_.access::<HalfedgeConnectivity>(self.hconn_,h).prev_halfedge_
     }
 
     /// Returns the opposite `Halfedge` of h.
@@ -379,7 +523,8 @@ impl Mesh {
         }
 
         // Creates the new face
-        let f = self.fconn_.push(FaceConnectivity::new(hvec[n-1]));
+        let f = self.fprop_.push();
+        *self.fprop_.access_mut::<FaceConnectivity>(self.fconn_,f) = FaceConnectivity::new(hvec[n-1]);
 
         // Setup halfedges
         let mut next_cache : Vec<(Halfedge,Halfedge)> = Vec::new();
@@ -436,25 +581,149 @@ impl Mesh {
         return f;
     }
 
+    /// Add a vertex property with default value. If a vertex property with this name already exists, return `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    ///
+    /// let mut m = Mesh::new();
+    /// let pv = m.add_vertex_property::<u32>("v:my_prop",17);
+    /// assert!(pv.is_valid());
+    /// ```
+    pub fn add_vertex_property<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> Property {
+        self.vprop_.add::<D>(name,default_value)
+    }
+
+    /// Add a face property with default value. If a face property with this name already exists, return `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    ///
+    /// let mut m = Mesh::new();
+    /// let pf = m.add_face_property::<u32>("f:my_prop",17);
+    /// assert!(pf.is_valid());
+    /// ```
+    pub fn add_face_property<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> Property {
+        self.fprop_.add::<D>(name,default_value)
+    }
+
+    /// Add a edge property with default value. If a edge property with this name already exists, return `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    ///
+    /// let mut m = Mesh::new();
+    /// let pe = m.add_edge_property::<u32>("e:my_prop",17);
+    /// assert!(pe.is_valid());
+    /// ```
+    pub fn add_edge_property<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> Property {
+        self.eprop_.add::<D>(name,default_value)
+    }
+
+    /// Add a halfedge property with default value. If a halfedge property with this name already exists, return `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    ///
+    /// let mut m = Mesh::new();
+    /// let ph = m.add_halfedge_property::<u32>("h:my_prop",17);
+    /// assert!(ph.is_valid());
+    /// ```
+    pub fn add_halfedge_property<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> Property {
+        self.hprop_.add::<D>(name,default_value)
+    }
+
+    /// Get a vertex property by its name. If it does not exist, return `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    ///
+    /// let mut m = Mesh::new();
+    /// m.add_vertex_property::<u32>("v:my_prop",17);
+    /// let pv = m.get_vertex_property::<u32>("v:my_prop");
+    /// assert!(pv.is_valid());
+    /// ```
+    pub fn get_vertex_property<D : 'static + Clone>(&self, name : & 'static str) -> Property {
+        self.vprop_.get::<D>(name)
+    }
+
+    /// Get a face property by its name. If it does not exist, return `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    ///
+    /// let mut m = Mesh::new();
+    /// m.add_face_property::<u32>("f:my_prop",17);
+    /// let pf = m.get_face_property::<u32>("f:my_prop");
+    /// assert!(pf.is_valid());
+    /// ```
+    pub fn get_face_property<D : 'static + Clone>(&self, name : & 'static str) -> Property {
+        self.fprop_.get::<D>(name)
+    }
+
+    /// Get a edge property by its name. If it does not exist, return `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    ///
+    /// let mut m = Mesh::new();
+    /// m.add_edge_property::<u32>("e:my_prop",17);
+    /// let pe = m.get_edge_property::<u32>("e:my_prop");
+    /// assert!(pe.is_valid());
+    /// ```
+    pub fn get_edge_property<D : 'static + Clone>(&self, name : & 'static str) -> Property {
+        self.eprop_.get::<D>(name)
+    }
+
+    /// Get a halfedge property by its name. If it does not exist, return `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    ///
+    /// let mut m = Mesh::new();
+    /// m.add_halfedge_property::<u32>("h:my_prop",17);
+    /// let ph = m.get_halfedge_property::<u32>("h:my_prop");
+    /// assert!(ph.is_valid());
+    /// ```
+    pub fn get_halfedge_property<D : 'static + Clone>(&self, name : & 'static str) -> Property {
+        self.hprop_.get::<D>(name)
+    }
+
     /// Sets the outgoing `Halfedge` of `Vertex` v to h.
     fn set_halfedge(&mut self, v : Vertex, h : Halfedge) {
-        self.vconn_[v].halfedge_ = h;
+        self.vprop_.access_mut::<VertexConnectivity>(self.vconn_,v).halfedge_ = h;
     }
 
     /// Sets the incident `Face` to `Halfedge` h to f.
     fn set_face(&mut self, h : Halfedge, f : Face) {
-        self.hconn_[h].face_ = f;
+        self.hprop_.access_mut::<HalfedgeConnectivity>(self.hconn_,h).face_ = f;
     }
 
     /// Sets the `Vertex` the `Halfedge` h points to to v.
     fn set_vertex(&mut self, h : Halfedge, v : Vertex) {
-        self.hconn_[h].vertex_ = v;
+        self.hprop_.access_mut::<HalfedgeConnectivity>(self.hconn_,h).vertex_ = v;
     }
 
     /// Sets the next `Halfedge` of h within the face to nh
     fn set_next_halfedge(&mut self, h : Halfedge, nh : Halfedge) {
-        self.hconn_[h].next_halfedge_ = nh;
-        self.hconn_[nh].prev_halfedge_ = h;
+        self.hprop_.access_mut::<HalfedgeConnectivity>(self.hconn_,h).next_halfedge_ = nh;
+        self.hprop_.access_mut::<HalfedgeConnectivity>(self.hconn_,nh).prev_halfedge_ = h;
     }
 
     /// Makes sure that the outgoing `Halfedge` of `Vertex` v is boundary halfedge if v is a boundary vertex.
@@ -480,11 +749,11 @@ impl Mesh {
     /// allocate a new edge and returns the `Halfedge` from start to end
     fn new_edge(&mut self, start : Vertex, end : Vertex) -> Halfedge {
         assert!(start != end);
-        let hc0 = HalfedgeConnectivity::new(Face::invalid(),start,Halfedge::invalid(),Halfedge::invalid());
-        let hc1 = HalfedgeConnectivity::new(Face::invalid(),end,Halfedge::invalid(),Halfedge::invalid());
 
-        let h0 = self.hconn_.push(hc0);
-        let h1 = self.hconn_.push(hc1);
+        self.eprop_.push();
+
+        let h0 = self.hprop_.push();
+        let h1 = self.hprop_.push();
 
         self.set_vertex(h0, end);
         self.set_vertex(h1, start);
@@ -493,24 +762,212 @@ impl Mesh {
     }
 }
 
+impl PropertyAccess<Vertex> for Mesh {
+    /// Access the element of the vertex 'Property' prop indexing by 'Vertex' v.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::property::PropertyAccess;
+    ///
+    /// let mut m = Mesh::new();
+    /// let prop = m.add_vertex_property::<u32>("v:my_prop",17);
+    /// let v0 = m.add_vertex();
+    /// assert_eq!(*m.access::<u32>(prop,v0),17);
+    /// ```
+    fn access<D : 'static + Clone>(&self, prop : Property, v : Vertex) -> &D{
+        self.vprop_.access::<D>(prop,v)
+    }
+
+    /// Mutable access to the element of the vertex 'Property' prop indexing by 'Vertex' v.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::property::PropertyAccess;
+    ///
+    /// let mut m = Mesh::new();
+    /// let prop = m.add_vertex_property::<u32>("v:my_prop",17);
+    /// let v0 = m.add_vertex();
+    /// assert_eq!(*m.access::<u32>(prop,v0),17);
+    /// *m.access_mut::<u32>(prop,v0) = 42;
+    /// assert_eq!(*m.access::<u32>(prop,v0),42);
+    /// ```
+    fn access_mut<D : 'static + Clone>(&mut self, prop : Property, v : Vertex) -> &mut D{
+        self.vprop_.access_mut::<D>(prop,v)
+    }
+}
+
+impl PropertyAccess<Face> for Mesh {
+    /// Access the element of the face 'Property' prop indexing by 'Face' f.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::property::PropertyAccess;
+    /// use lwmesh::handle::Vertex;
+    ///
+    /// let mut m = Mesh::new();
+    /// let prop = m.add_face_property::<u32>("f:my_prop",17);
+    /// let mut vvec = Vec::<Vertex>::new();
+    /// for _ in 0..3 {
+    ///     vvec.push(m.add_vertex());
+    /// }
+    /// let f = m.add_face(&vvec);
+    /// assert_eq!(*m.access::<u32>(prop,f),17);
+    /// ```
+    fn access<D : 'static + Clone>(&self, prop : Property, f : Face) -> &D{
+        self.fprop_.access::<D>(prop,f)
+    }
+
+    /// Mutable access to the element of the face 'Property' prop indexing by 'Face' f.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::property::PropertyAccess;
+    /// use lwmesh::handle::Vertex;
+    ///
+    /// let mut m = Mesh::new();
+    /// let prop = m.add_face_property::<u32>("f:my_prop",17);
+    /// let mut vvec = Vec::<Vertex>::new();
+    /// for _ in 0..3 {
+    ///     vvec.push(m.add_vertex());
+    /// }
+    /// let f = m.add_face(&vvec);
+    /// assert_eq!(*m.access::<u32>(prop,f),17);
+    /// *m.access_mut::<u32>(prop,f) = 42;
+    /// assert_eq!(*m.access::<u32>(prop,f),42);
+    /// ```
+    fn access_mut<D : 'static + Clone>(&mut self, prop : Property, f : Face) -> &mut D{
+        self.fprop_.access_mut::<D>(prop,f)
+    }
+}
+
+impl PropertyAccess<Edge> for Mesh {
+    /// Access the element of the edge 'Property' prop indexing by 'Edge' e.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::property::PropertyAccess;
+    /// use lwmesh::handle::Vertex;
+    ///
+    /// let mut m = Mesh::new();
+    /// let prop = m.add_edge_property::<u32>("e:my_prop",17);
+    /// let mut vvec = Vec::<Vertex>::new();
+    /// for _ in 0..3 {
+    ///     vvec.push(m.add_vertex());
+    /// }
+    /// m.add_face(&vvec);
+    /// let e = m.edge(m.find_halfedge(vvec[0],vvec[1]));
+    /// assert_eq!(*m.access::<u32>(prop,e),17);
+    /// ```
+    fn access<D : 'static + Clone>(&self, prop : Property, e : Edge) -> &D{
+        self.eprop_.access::<D>(prop,e)
+    }
+
+    /// Mutable access to the element of the edge 'Property' prop indexing by 'Edge' e.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::property::PropertyAccess;
+    /// use lwmesh::handle::Vertex;
+    ///
+    /// let mut m = Mesh::new();
+    /// let prop = m.add_edge_property::<u32>("e:my_prop",17);
+    /// let mut vvec = Vec::<Vertex>::new();
+    /// for _ in 0..3 {
+    ///     vvec.push(m.add_vertex());
+    /// }
+    /// m.add_face(&vvec);
+    /// let e = m.edge(m.find_halfedge(vvec[0],vvec[1]));
+    /// assert_eq!(*m.access::<u32>(prop,e),17);
+    /// *m.access_mut::<u32>(prop,e) = 42;
+    /// assert_eq!(*m.access::<u32>(prop,e),42);
+    /// ```
+    fn access_mut<D : 'static + Clone>(&mut self, prop : Property, e : Edge) -> &mut D{
+        self.eprop_.access_mut::<D>(prop,e)
+    }
+}
+
+impl PropertyAccess<Halfedge> for Mesh {
+    /// Access the element of the halfedge 'Property' prop indexing by 'Halfedge' h.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::property::PropertyAccess;
+    /// use lwmesh::handle::Vertex;
+    ///
+    /// let mut m = Mesh::new();
+    /// let prop = m.add_halfedge_property::<u32>("h:my_prop",17);
+    /// let mut vvec = Vec::<Vertex>::new();
+    /// for _ in 0..3 {
+    ///     vvec.push(m.add_vertex());
+    /// }
+    /// m.add_face(&vvec);
+    /// let h = m.find_halfedge(vvec[0],vvec[1]);
+    /// assert_eq!(*m.access::<u32>(prop,h),17);
+    /// *m.access_mut::<u32>(prop,h) = 42;
+    /// assert_eq!(*m.access::<u32>(prop,h),42);
+    /// ```
+    fn access<D : 'static + Clone>(&self, prop : Property, h : Halfedge) -> &D{
+        self.hprop_.access::<D>(prop,h)
+    }
+
+    /// Mutable access to the element of the halfedge 'Property' prop indexing by 'Halfedge' h.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::property::PropertyAccess;
+    /// use lwmesh::handle::Vertex;
+    ///
+    /// let mut m = Mesh::new();
+    /// let prop = m.add_halfedge_property::<u32>("h:my_prop",17);
+    /// let mut vvec = Vec::<Vertex>::new();
+    /// for _ in 0..3 {
+    ///     vvec.push(m.add_vertex());
+    /// }
+    /// m.add_face(&vvec);
+    /// let h = m.find_halfedge(vvec[0],vvec[1]);
+    /// assert_eq!(*m.access::<u32>(prop,h),17);
+    /// *m.access_mut::<u32>(prop,h) = 42;
+    /// assert_eq!(*m.access::<u32>(prop,h),42);
+    /// ```
+    fn access_mut<D : 'static + Clone>(&mut self, prop : Property, h : Halfedge) -> &mut D{
+        self.hprop_.access_mut::<D>(prop,h)
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use super::super::handle::Vertex;
+    use property::PropertyAccess;
 
     #[test]
     fn add_vertex() {
         let mut m = Mesh::new();
-        assert!(m.vconn_.len() == 0);
+        assert!(m.vprop_.len() == 0);
 
         let v0 = m.add_vertex();
-        assert!(m.vconn_.len() == 1);
+        assert!(m.vprop_.len() == 1);
         assert!(v0.idx().unwrap() == 0);
 
         m.add_vertex();
         let v2 = m.add_vertex();
-        assert!(m.vconn_.len() == 3);
+        assert!(m.vprop_.len() == 3);
         assert!(v2.idx().unwrap() == 2);
     }
 
@@ -562,6 +1019,63 @@ mod tests {
         let f = m.add_face(&vvec);
         assert!(!f.is_valid());
         assert!(m.n_faces() == 2);
-
     }
+
+    #[test]
+    fn property() {
+        let mut m = Mesh::new();
+
+        // Vertex
+        let prop = m.add_vertex_property::<u32>("v:my_prop",17);
+        let v0 = m.add_vertex();
+        assert_eq!(*m.access::<u32>(prop,v0),17);
+        *m.access_mut::<u32>(prop,v0) = 42;
+        assert_eq!(*m.access::<u32>(prop,v0),42);
+
+        // Face
+        let prop = m.add_face_property::<u32>("f:my_prop",17);
+        let mut vvec = Vec::<Vertex>::new();
+        let v1 = m.add_vertex();
+        let v2 = m.add_vertex();
+        vvec.push(v0);
+        vvec.push(v1);
+        vvec.push(v2);
+        let f = m.add_face(&vvec);
+        assert_eq!(*m.access::<u32>(prop,f),17);
+        *m.access_mut::<u32>(prop,f) = 42;
+        assert_eq!(*m.access::<u32>(prop,f),42);
+
+        // Edge
+        let prop = m.add_edge_property::<u32>("v:my_prop",17);
+        let e = m.edge(m.find_halfedge(v0,v1));
+        assert_eq!(*m.access::<u32>(prop,e),17);
+        *m.access_mut::<u32>(prop,e) = 42;
+        assert_eq!(*m.access::<u32>(prop,e),42);
+
+        // Halfedge
+        let prop = m.add_halfedge_property::<u32>("v:my_prop",17);
+        let h = m.find_halfedge(v2,v0);
+        assert_eq!(*m.access::<u32>(prop,h),17);
+        *m.access_mut::<u32>(prop,h) = 42;
+        assert_eq!(*m.access::<u32>(prop,h),42);
+    }
+
+    #[test]
+    #[should_panic]
+    fn invalid_property() {
+        let mut m = Mesh::new();
+        let prop = m.get_vertex_property::<u32>("v:my_prop");
+        let v0 = m.add_vertex();
+        m.access::<u32>(prop,v0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn mixing_property() {
+        let mut m = Mesh::new();
+        let prop = m.add_face_property::<u32>("v:my_prop",17);
+        let v0 = m.add_vertex();
+        m.access::<u32>(prop,v0);
+    }
+
 }

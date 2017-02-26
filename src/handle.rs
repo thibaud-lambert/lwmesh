@@ -9,11 +9,14 @@ pub struct PhantomFace;
 pub struct PhantomEdge;
 #[derive(Copy, Clone)]
 pub struct PhantomHalfedge;
+#[derive(Copy, Clone)]
+pub struct PhantomProperty;
 
 pub type Vertex = Handle<PhantomVertex>;
 pub type Face = Handle<PhantomFace>;
 pub type Edge = Handle<PhantomEdge>;
 pub type Halfedge = Handle<PhantomHalfedge>;
+pub type Property = Handle<PhantomProperty>;
 
 /// A basic handle
 ///
