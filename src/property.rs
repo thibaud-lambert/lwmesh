@@ -1,8 +1,11 @@
 use std::marker::PhantomData;
 use std::any::Any;
 use handle::*;
+use std::ops::Index;
+use std::ops::IndexMut;
 
-trait ResizableVec {
+pub trait ResizableVec {
+    fn len(&self) -> usize;
     fn reserve(&mut self, size : usize);
     fn capacity(&self) -> usize;
     fn push(&mut self);
@@ -10,23 +13,29 @@ trait ResizableVec {
     fn as_any_mut(&mut self) -> &mut Any;
 }
 
-struct GenericVec<D : 'static> {
+pub struct PropertyVec<H : 'static, D : 'static> {
     default_ : D,
-    data_ : Vec<D>
+    data_ : Vec<D>,
+    handle_ : PhantomData<H>,
 }
 
-impl<D : 'static> GenericVec<D> {
-    pub fn new(default_value : D) -> GenericVec<D> {
-        GenericVec {
+impl<T : 'static, D : 'static> PropertyVec<Handle<T>, D> {
+    pub fn new(default_value : D) -> PropertyVec<Handle<T>, D> {
+        PropertyVec {
             default_ : default_value,
-            data_ : Vec::new()
+            data_ : Vec::new(),
+            handle_ : PhantomData,
         }
     }
 }
 
-impl<D : Clone> ResizableVec for GenericVec<D> {
+impl<T : 'static, D : Clone> ResizableVec for PropertyVec<Handle<T>, D> {
     fn reserve(&mut self, size : usize) {
         self.data_.reserve(size);
+    }
+
+    fn len(& self) -> usize {
+        self.data_.len()
     }
 
     fn capacity(& self) -> usize {
@@ -43,6 +52,20 @@ impl<D : Clone> ResizableVec for GenericVec<D> {
 
     fn as_any_mut(&mut self) -> &mut Any {
         self
+    }
+}
+
+impl<T,D> Index<Handle<T>> for PropertyVec<Handle<T>, D> {
+    type Output = D;
+
+    fn index(&self, h: Handle<T>) -> &D {
+        &self.data_[h.idx().unwrap()]
+    }
+}
+
+impl<T,D> IndexMut<Handle<T>> for PropertyVec<Handle<T>, D> {
+    fn index_mut(&mut self, h: Handle<T>) -> &mut D {
+        &mut self.data_[h.idx().unwrap()]
     }
 }
 
@@ -145,20 +168,20 @@ impl<T : 'static> PropertyContainer<Handle<T>> {
     /// let prop = pcontainer.add::<u32>("my_prop",0);
     /// assert!(!prop.is_valid());
     /// ```
-    pub fn add<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> Property {
+    pub fn add<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> Handle<Handle<T> > {
         for &(n, _) in self.parrays_.iter() {
             if n == name {
-                return Property::invalid();
+                return Handle::<Handle<T> >::invalid();
             }
         }
-        let mut gv = GenericVec::new(default_value);
-        gv.data_.reserve(self.capacity_);
+        let mut gv = PropertyVec::<Handle<T>,D>::new(default_value);
+        gv.reserve(self.capacity_);
         for _ in 0..self.size_ {
-            gv.data_.push(gv.default_.clone());
+            gv.push();
         }
         let p = Box::new(gv);
         self.parrays_.push((name,p));
-        return Property::new(self.parrays_.len()-1);
+        return Handle::<Handle<T> >::new(self.parrays_.len()-1);
     }
 
     /// Get a property by its name. If it does not exist, return `None`.
@@ -180,15 +203,15 @@ impl<T : 'static> PropertyContainer<Handle<T>> {
     /// let prop = pcontainer.get::<u32>("my_prop");
     /// assert!(prop.is_valid());
     /// ```
-    pub fn get<D : 'static + Clone>(&self, name : & 'static str) -> Property {
+    pub fn get<D : 'static + Clone>(&self, name : & 'static str) -> Handle<Handle<T> > {
         for (i, &(n, ref b)) in self.parrays_.iter().enumerate() {
             if n == name {
-                if b.as_any().downcast_ref::<GenericVec<D>>().is_some() {
-                    return Property::new(i);
+                if b.as_any().downcast_ref::<PropertyVec<Handle<T>,D>>().is_some() {
+                    return Handle::<Handle<T> >::new(i);
                 }
             }
         }
-        return Property::invalid();
+        return Handle::<Handle<T> >::invalid();
     }
 
     /// Adds a new element to all existing Property.
@@ -209,12 +232,11 @@ impl<T : 'static> PropertyContainer<Handle<T>> {
     /// assert_eq!(prop.len(),1);
     /// assert!(v.is_valid());
     /// ```
-    pub fn push(&mut self) -> Handle<T> {
+    pub fn push(&mut self){
         self.size_ += 1;
         for &mut(_, ref mut b) in self.parrays_.iter_mut() {
             b.push();
         }
-        Handle::new(self.size_-1)
     }
 
     /// Acces a property by its name. If it does not exist, return `None`.
@@ -230,15 +252,16 @@ impl<T : 'static> PropertyContainer<Handle<T>> {
     /// let prop = pcontainer.add::<u32>("my_prop",17);
     /// assert!(prop.is_valid());
     ///
-    /// let v = pcontainer.push();
+    /// pcontainer.push();
+    /// let v = Vertex::new(pcontainer.len()-1);
     ///
     /// assert_eq!(*pcontainer.access::<u32>(prop,v),17);
     ///
     /// ```
-    pub fn access<D : 'static>(&self, prop : Property, h : Handle<T>) -> &D {
+    pub fn access<D : 'static>(&self, prop : Handle<Handle<T> >, h : Handle<T>) -> &D {
         let (_,ref b) = self.parrays_[prop.idx().unwrap()];
-        let pa : &GenericVec<D> = b.as_any().downcast_ref::<GenericVec<D>>().unwrap();
-        return &pa.data_[h.idx().unwrap()];
+        let pa : &PropertyVec<Handle<T>,D> = b.as_any().downcast_ref::<PropertyVec<Handle<T>,D>>().unwrap();
+        return &pa[h];
     }
 
     /// Acces a property by its name. If it does not exist, return `None`.
@@ -254,7 +277,8 @@ impl<T : 'static> PropertyContainer<Handle<T>> {
     /// let prop = pcontainer.add::<u32>("my_prop",17);
     /// assert!(prop.is_valid());
     ///
-    /// let v = pcontainer.push();
+    /// pcontainer.push();
+    /// let v = Vertex::new(pcontainer.len()-1);
     ///
     /// assert_eq!(*pcontainer.access::<u32>(prop,v),17u32);
     ///
@@ -263,24 +287,22 @@ impl<T : 'static> PropertyContainer<Handle<T>> {
     /// assert_eq!(*pcontainer.access::<u32>(prop,v),42u32);
     ///
     /// ```
-    pub fn access_mut<D : 'static>(&mut self, prop : Property, h : Handle<T>) -> &mut D {
+    pub fn access_mut<D : 'static>(&mut self, prop : Handle<Handle<T> >, h : Handle<T>) -> &mut D {
         let (_,ref mut b) = self.parrays_[prop.idx().unwrap()];
-        let pa : &mut GenericVec<D> = b.as_any_mut().downcast_mut::<GenericVec<D>>().unwrap();
-        return &mut pa.data_[h.idx().unwrap()];
+        let pa : &mut PropertyVec<Handle<T>,D> = b.as_any_mut().downcast_mut::<PropertyVec<Handle<T>,D>>().unwrap();
+        return &mut pa[h];
     }
 }
 
 pub trait PropertyAccess<H> {
-    fn access<D : 'static + Clone>(&self, prop : Property, h : H) -> &D;
-    fn access_mut<D : 'static + Clone>(&mut self, prop : Property, h : H) -> &mut D;
+    fn access<D : 'static + Clone>(&self, prop : Handle<H>, h : H) -> &D;
+    fn access_mut<D : 'static + Clone>(&mut self, prop : Handle<H>, h : H) -> &mut D;
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use handle::*;
-    use property::GenericVec;
-    use property::ResizableVec;
 
     #[test]
     fn reserve() {
@@ -329,17 +351,19 @@ mod tests {
         assert!(17 <= pcontainer.capacity());
         let prop = pcontainer.add::<u32>("v:my_prop",0);
         let (_,ref b) = pcontainer.parrays_[prop.idx().unwrap()];
-        let pa = b.as_any().downcast_ref::<GenericVec<u32>>().unwrap();
+        let pa = b.as_any().downcast_ref::<PropertyVec<Vertex,u32>>().unwrap();
         assert_eq!(pa.capacity(),17);
     }
 
     #[test]
     fn push_and_add() {
         let mut pcontainer = PropertyContainer::<Vertex>::new();
-        let v0 = pcontainer.push();
+        pcontainer.push();
+        let v0 = Vertex::new(pcontainer.len()-1);
         assert!(1 == pcontainer.len());
         let prop = pcontainer.add::<u32>("v:my_prop",17);
-        let v1 = pcontainer.push();
+        pcontainer.push();
+        let v1 = Vertex::new(pcontainer.len()-1);
         assert!(2 == pcontainer.len());
         assert_eq!(*pcontainer.access::<u32>(prop,v0),17);
         assert_eq!(*pcontainer.access::<u32>(prop,v1),17);
@@ -349,7 +373,8 @@ mod tests {
     fn access() {
         let mut pcontainer = PropertyContainer::<Vertex>::new();
         let prop = pcontainer.add::<u32>("v:my_prop",17);
-        let v = pcontainer.push();
+        pcontainer.push();
+        let v = Vertex::new(pcontainer.len()-1);
         assert_eq!(*pcontainer.access::<u32>(prop,v),17);
         *pcontainer.access_mut::<u32>(prop,v) = 42;
         assert_eq!(*pcontainer.access::<u32>(prop,v),42);
