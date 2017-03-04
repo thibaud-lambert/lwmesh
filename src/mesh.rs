@@ -174,6 +174,27 @@ impl Topology {
         self.vconn_[v].halfedge_
     }
 
+    /// Returns an outgoing `Haldedge` of `Vertex` `v`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::handle::Vertex;
+    ///
+    /// let mut m = Mesh::new();
+    /// let mut vvec = Vec::<Vertex>::new();
+    /// for _ in 0..3 {
+    ///     vvec.push(m.add_vertex());
+    /// }
+    /// let f = m.add_face(&vvec);
+    /// let h = m.topology.halfedge(vvec[0]);
+    /// assert!(m.topology.from_vertex(h) == vvec[0]);
+    /// ```
+    pub fn face_halfedge(&self, f : Face) -> Halfedge {
+        self.fconn_[f].halfedge_
+    }
+
     /// Returns the `Edge`  that contains `Halfedge` h as one of its two halfedges.
     ///
     /// # Examples
