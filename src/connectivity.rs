@@ -3,13 +3,13 @@ use handle::*;
 /// Store the connectivity of a vertex in a halfedge mesh.
 #[derive(Copy, Clone)]
 pub struct VertexConnectivity {
-    pub halfedge_ : Halfedge,
+    pub halfedge_ : Option<Halfedge>,
 }
 
 /// Store the connectivity of a halfedge in a halfedge mesh.
 #[derive(Copy, Clone)]
 pub struct HalfedgeConnectivity {
-    pub face_ : Face,
+    pub face_ : Option<Face>,
     pub vertex_ : Vertex,
     pub next_halfedge_ : Halfedge,
     pub prev_halfedge_ : Halfedge,
@@ -33,7 +33,7 @@ impl VertexConnectivity {
     /// ```
     pub fn invalid() -> VertexConnectivity {
         VertexConnectivity {
-            halfedge_ : Halfedge::invalid(),
+            halfedge_ : None,
         }
     }
 
@@ -50,7 +50,7 @@ impl VertexConnectivity {
     /// ```
     pub fn new(h : Halfedge) -> VertexConnectivity {
         VertexConnectivity {
-            halfedge_ : h,
+            halfedge_ : Some(h),
         }
     }
 }
@@ -67,10 +67,10 @@ impl HalfedgeConnectivity {
     /// ```
     pub fn invalid() -> HalfedgeConnectivity {
         HalfedgeConnectivity {
-            face_ : Face::invalid(),
-            vertex_ : Vertex::invalid(),
-            next_halfedge_ : Halfedge::invalid(),
-            prev_halfedge_ : Halfedge::invalid(),
+            face_ : None,
+            vertex_ : Vertex::new(0),
+            next_halfedge_ : Halfedge::new(0),
+            prev_halfedge_ : Halfedge::new(0),
         }
     }
 
@@ -90,7 +90,7 @@ impl HalfedgeConnectivity {
     /// ```
     pub fn new(f : Face, v : Vertex, nh : Halfedge, ph : Halfedge) -> HalfedgeConnectivity {
         HalfedgeConnectivity {
-            face_ : f,
+            face_ : Some(f),
             vertex_ : v,
             next_halfedge_ : nh,
             prev_halfedge_ : ph,
@@ -99,21 +99,6 @@ impl HalfedgeConnectivity {
 }
 
 impl FaceConnectivity {
-    /// Constructs an invalid `FaceConnectivity`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use lwmesh::connectivity::FaceConnectivity;
-    ///
-    /// let fc = FaceConnectivity::invalid();
-    /// ```
-    pub fn invalid() -> FaceConnectivity {
-        FaceConnectivity {
-            halfedge_ : Halfedge::invalid(),
-        }
-    }
-
     /// Constructs a new `FaceConnectivity`.
     ///
     /// # Examples

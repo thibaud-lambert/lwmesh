@@ -13,7 +13,7 @@ impl Topology {
         Topology {
             vconn_ : PropertyVec::<Vertex,VertexConnectivity>::new(VertexConnectivity::invalid()),
             hconn_ : PropertyVec::<Halfedge,HalfedgeConnectivity>::new(HalfedgeConnectivity::invalid()),
-            fconn_ : PropertyVec::<Face,FaceConnectivity>::new(FaceConnectivity::invalid()),
+            fconn_ : PropertyVec::<Face,FaceConnectivity>::new(FaceConnectivity::new(Halfedge::new(0))),
         }
     }
 
@@ -105,8 +105,11 @@ impl Topology {
     /// assert!(m.topology.is_boundary_vertex(v));
     /// ```
     pub fn is_boundary_vertex(&self, v : Vertex) -> bool {
-        let h = self.halfedge(v);
-        !(h.is_valid() && self.face(h).is_valid())
+        let o = self.halfedge(v);
+        match o {
+            Some(h) => self.face(h).is_none(),
+            None => true,
+        }
     }
 
     /// Returns if the `Halfedge` is on a boundary
@@ -123,13 +126,13 @@ impl Topology {
     ///     vvec.push(m.add_vertex());
     /// }
     /// let f = m.add_face(&vvec);
-    /// let h = m.topology.find_halfedge(vvec[0],vvec[1]);
+    /// let h = m.topology.find_halfedge(vvec[0],vvec[1]).unwrap();
     /// assert!(!m.topology.is_boundary_halfedge(h));
     /// let oh = m.topology.opposite_halfedge(h);
     /// assert!(m.topology.is_boundary_halfedge(oh));
     /// ```
     pub fn is_boundary_halfedge(&self, h : Halfedge) -> bool {
-        !(h.is_valid() && self.face(h).is_valid())
+        self.face(h).is_none()
     }
 
     /// Returns the `Face` incident to the `Halfedge`.
@@ -145,11 +148,11 @@ impl Topology {
     /// for _ in 0..3 {
     ///     vvec.push(m.add_vertex());
     /// }
-    /// let f = m.add_face(&vvec);
-    /// let h = m.topology.find_halfedge(vvec[0],vvec[1]);
-    /// assert!(m.topology.face(h) == f);
+    /// let f = m.add_face(&vvec).unwrap();
+    /// let h = m.topology.find_halfedge(vvec[0],vvec[1]).unwrap();
+    /// assert!(m.topology.face(h).unwrap() == f);
     /// ```
-    pub fn face(&self, h : Halfedge) -> Face {
+    pub fn face(&self, h : Halfedge) -> Option<Face> {
         self.hconn_[h].face_
     }
 
@@ -167,10 +170,10 @@ impl Topology {
     ///     vvec.push(m.add_vertex());
     /// }
     /// let f = m.add_face(&vvec);
-    /// let h = m.topology.halfedge(vvec[0]);
+    /// let h = m.topology.halfedge(vvec[0]).unwrap();
     /// assert!(m.topology.from_vertex(h) == vvec[0]);
     /// ```
-    pub fn halfedge(&self, v : Vertex) -> Halfedge {
+    pub fn halfedge(&self, v : Vertex) -> Option<Halfedge> {
         self.vconn_[v].halfedge_
     }
 
@@ -188,7 +191,7 @@ impl Topology {
     ///     vvec.push(m.add_vertex());
     /// }
     /// let f = m.add_face(&vvec);
-    /// let h = m.topology.halfedge(vvec[0]);
+    /// let h = m.topology.halfedge(vvec[0]).unwrap();
     /// assert!(m.topology.from_vertex(h) == vvec[0]);
     /// ```
     pub fn face_halfedge(&self, f : Face) -> Halfedge {
@@ -209,12 +212,12 @@ impl Topology {
     ///     vvec.push(m.add_vertex());
     /// }
     /// let f = m.add_face(&vvec);
-    /// let h = m.topology.halfedge(vvec[0]);
+    /// let h = m.topology.halfedge(vvec[0]).unwrap();
     /// let ho = m.topology.opposite_halfedge(h);
     /// assert!(m.topology.edge(h) == m.topology.edge(ho));
     /// ```
     pub fn edge(&self, h : Halfedge) -> Edge {
-        Edge::new(h.idx().unwrap()/2)
+        Edge::new(h.idx()/2)
     }
 
     /// Returns the `Vertex` the `Halfedge` h points to.
@@ -231,7 +234,7 @@ impl Topology {
     ///     vvec.push(m.add_vertex());
     /// }
     /// let f = m.add_face(&vvec);
-    /// let h = m.topology.find_halfedge(vvec[0],vvec[1]);
+    /// let h = m.topology.find_halfedge(vvec[0],vvec[1]).unwrap();
     /// assert!(m.topology.to_vertex(h) == vvec[1]);
     /// ```
     pub fn to_vertex(&self, h : Halfedge) -> Vertex {
@@ -252,7 +255,7 @@ impl Topology {
     ///     vvec.push(m.add_vertex());
     /// }
     /// let f = m.add_face(&vvec);
-    /// let h = m.topology.find_halfedge(vvec[0],vvec[1]);
+    /// let h = m.topology.find_halfedge(vvec[0],vvec[1]).unwrap();
     /// assert!(m.topology.from_vertex(h) == vvec[0]);
     /// ```
     pub fn from_vertex(&self, h : Halfedge) -> Vertex {
@@ -273,9 +276,9 @@ impl Topology {
     ///     vvec.push(m.add_vertex());
     /// }
     /// let f = m.add_face(&vvec);
-    /// let h0 = m.topology.find_halfedge(vvec[0],vvec[1]);
-    /// let h1 = m.topology.find_halfedge(vvec[1],vvec[2]);
-    /// let h2 = m.topology.find_halfedge(vvec[2],vvec[0]);
+    /// let h0 = m.topology.find_halfedge(vvec[0],vvec[1]).unwrap();
+    /// let h1 = m.topology.find_halfedge(vvec[1],vvec[2]).unwrap();
+    /// let h2 = m.topology.find_halfedge(vvec[2],vvec[0]).unwrap();
     /// assert!(m.topology.next_halfedge(h0) == h1);
     /// assert!(m.topology.next_halfedge(h1) == h2);
     /// assert!(m.topology.next_halfedge(h2) == h0);
@@ -298,9 +301,9 @@ impl Topology {
     ///     vvec.push(m.add_vertex());
     /// }
     /// let f = m.add_face(&vvec);
-    /// let h0 = m.topology.find_halfedge(vvec[0],vvec[1]);
-    /// let h1 = m.topology.find_halfedge(vvec[1],vvec[2]);
-    /// let h2 = m.topology.find_halfedge(vvec[2],vvec[0]);
+    /// let h0 = m.topology.find_halfedge(vvec[0],vvec[1]).unwrap();
+    /// let h1 = m.topology.find_halfedge(vvec[1],vvec[2]).unwrap();
+    /// let h2 = m.topology.find_halfedge(vvec[2],vvec[0]).unwrap();
     /// assert!(m.topology.prev_halfedge(h0) == h2);
     /// assert!(m.topology.prev_halfedge(h1) == h0);
     /// assert!(m.topology.prev_halfedge(h2) == h1);
@@ -323,12 +326,12 @@ impl Topology {
     ///     vvec.push(m.add_vertex());
     /// }
     /// let f = m.add_face(&vvec);
-    /// let h0 = m.topology.find_halfedge(vvec[0],vvec[1]);
-    /// let h1 = m.topology.find_halfedge(vvec[1],vvec[0]);
+    /// let h0 = m.topology.find_halfedge(vvec[0],vvec[1]).unwrap();
+    /// let h1 = m.topology.find_halfedge(vvec[1],vvec[0]).unwrap();
     /// assert!(m.topology.opposite_halfedge(h0) == h1);
     /// ```
     pub fn opposite_halfedge(&self, h : Halfedge) -> Halfedge {
-        let idx = h.idx().unwrap();
+        let idx = h.idx();
         if (idx & 1) == 1 {
             Halfedge::new(idx-1)
         } else {
@@ -350,8 +353,8 @@ impl Topology {
     ///     vvec.push(m.add_vertex());
     /// }
     /// let f = m.add_face(&vvec);
-    /// let h0 = m.topology.find_halfedge(vvec[0],vvec[1]);
-    /// let h1 = m.topology.find_halfedge(vvec[0],vvec[2]);
+    /// let h0 = m.topology.find_halfedge(vvec[0],vvec[1]).unwrap();
+    /// let h1 = m.topology.find_halfedge(vvec[0],vvec[2]).unwrap();
     /// assert!(m.topology.cw_rotated_halfedge(h0) == h1);
     /// ```
     pub fn cw_rotated_halfedge(&self, h : Halfedge) -> Halfedge {
@@ -374,33 +377,33 @@ impl Topology {
     /// }
     /// let f = m.add_face(&vvec);
     /// let h = m.topology.find_halfedge(vvec[0],vvec[1]);
-    /// assert!(h.is_valid());
-    /// assert!(m.topology.from_vertex(h) == vvec[0]);
-    /// assert!(m.topology.to_vertex(h) == vvec[1]);
+    /// assert!(h.is_some());
+    /// assert!(m.topology.from_vertex(h.unwrap()) == vvec[0]);
+    /// assert!(m.topology.to_vertex(h.unwrap()) == vvec[1]);
     /// ```
-    pub fn find_halfedge(&self, start : Vertex, end : Vertex) -> Halfedge {
-        if start.is_valid() && end.is_valid() {
-            let mut h = self.halfedge(start);
-            let h_end = h;
-            if h.is_valid() {
-                loop {
-                    if self.to_vertex(h) == end {return h;}
-                    h = self.cw_rotated_halfedge(h);
-                    if h == h_end {break;}
-                }
-            }
+    pub fn find_halfedge(&self, start : Vertex, end : Vertex) -> Option<Halfedge> {
+        let mut h;
+        match self.halfedge(start) {
+            Some(x) => h=x,
+            None => return None,
+        };
+        let h_end = h;
+        loop {
+            if self.to_vertex(h) == end {return Some(h);}
+            h = self.cw_rotated_halfedge(h);
+            if h == h_end {break;}
         }
-        Halfedge::invalid()
+        None
     }
 
     /// Sets the outgoing `Halfedge` of `Vertex` v to h.
     fn set_halfedge(&mut self, v : Vertex, h : Halfedge) {
-        self.vconn_[v].halfedge_ = h;
+        self.vconn_[v].halfedge_ = Some(h);
     }
 
     /// Sets the incident `Face` to `Halfedge` h to f.
     fn set_face(&mut self, h : Halfedge, f : Face) {
-        self.hconn_[h].face_ = f;
+        self.hconn_[h].face_ = Some(f);
     }
 
     /// Sets the `Vertex` the `Halfedge` h points to to v.
@@ -416,21 +419,19 @@ impl Topology {
 
     /// Makes sure that the outgoing `Halfedge` of `Vertex` v is boundary halfedge if v is a boundary vertex.
     fn adjust_outgoing_halfedge(&mut self, v : Vertex) {
-        let mut h = self.halfedge(v);
+        let mut h;
+        match self.halfedge(v) {
+            Some(x) => h=x,
+            None => return,
+        }
         let hh = h;
-
-        if h.is_valid() {
-            let mut stop = false;
-            while !stop {
-                if self.is_boundary_halfedge(h) {
-                    self.set_halfedge(v,h);
-                    return;
-                }
-                h = self.cw_rotated_halfedge(h);
-                if h == hh {
-                    stop = true;
-                }
+        loop {
+            if self.is_boundary_halfedge(h) {
+                self.set_halfedge(v,h);
+                return;
             }
+            h = self.cw_rotated_halfedge(h);
+            if h == hh {break;}
         }
     }
 }
@@ -461,9 +462,9 @@ impl Properties {
     ///
     /// let mut m = Mesh::new();
     /// let pv = m.properties.add_vertex_property::<u32>("v:my_prop",17);
-    /// assert!(pv.is_valid());
+    /// assert!(pv.is_some());
     /// ```
-    pub fn add_vertex_property<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> PropertyVertex {
+    pub fn add_vertex_property<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> Option<PropertyVertex> {
         self.vprop_.add::<D>(name,default_value)
     }
 
@@ -476,9 +477,9 @@ impl Properties {
     ///
     /// let mut m = Mesh::new();
     /// let pf = m.properties.add_face_property::<u32>("f:my_prop",17);
-    /// assert!(pf.is_valid());
+    /// assert!(pf.is_some());
     /// ```
-    pub fn add_face_property<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> PropertyFace {
+    pub fn add_face_property<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> Option<PropertyFace> {
         self.fprop_.add::<D>(name,default_value)
     }
 
@@ -491,9 +492,9 @@ impl Properties {
     ///
     /// let mut m = Mesh::new();
     /// let pe = m.properties.add_edge_property::<u32>("e:my_prop",17);
-    /// assert!(pe.is_valid());
+    /// assert!(pe.is_some());
     /// ```
-    pub fn add_edge_property<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> PropertyEdge {
+    pub fn add_edge_property<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> Option<PropertyEdge> {
         self.eprop_.add::<D>(name,default_value)
     }
 
@@ -506,9 +507,9 @@ impl Properties {
     ///
     /// let mut m = Mesh::new();
     /// let ph = m.properties.add_halfedge_property::<u32>("h:my_prop",17);
-    /// assert!(ph.is_valid());
+    /// assert!(ph.is_some());
     /// ```
-    pub fn add_halfedge_property<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> PropertyHalfedge {
+    pub fn add_halfedge_property<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> Option<PropertyHalfedge> {
         self.hprop_.add::<D>(name,default_value)
     }
 
@@ -522,9 +523,9 @@ impl Properties {
     /// let mut m = Mesh::new();
     /// m.properties.add_vertex_property::<u32>("v:my_prop",17);
     /// let pv = m.properties.get_vertex_property::<u32>("v:my_prop");
-    /// assert!(pv.is_valid());
+    /// assert!(pv.is_some());
     /// ```
-    pub fn get_vertex_property<D : 'static + Clone>(&self, name : & 'static str) -> PropertyVertex {
+    pub fn get_vertex_property<D : 'static + Clone>(&self, name : & 'static str) -> Option<PropertyVertex> {
         self.vprop_.get::<D>(name)
     }
 
@@ -538,9 +539,9 @@ impl Properties {
     /// let mut m = Mesh::new();
     /// m.properties.add_face_property::<u32>("f:my_prop",17);
     /// let pf = m.properties.get_face_property::<u32>("f:my_prop");
-    /// assert!(pf.is_valid());
+    /// assert!(pf.is_some());
     /// ```
-    pub fn get_face_property<D : 'static + Clone>(&self, name : & 'static str) -> PropertyFace {
+    pub fn get_face_property<D : 'static + Clone>(&self, name : & 'static str) -> Option<PropertyFace> {
         self.fprop_.get::<D>(name)
     }
 
@@ -554,9 +555,9 @@ impl Properties {
     /// let mut m = Mesh::new();
     /// m.properties.add_edge_property::<u32>("e:my_prop",17);
     /// let pe = m.properties.get_edge_property::<u32>("e:my_prop");
-    /// assert!(pe.is_valid());
+    /// assert!(pe.is_some());
     /// ```
-    pub fn get_edge_property<D : 'static + Clone>(&self, name : & 'static str) -> PropertyEdge {
+    pub fn get_edge_property<D : 'static + Clone>(&self, name : & 'static str) -> Option<PropertyEdge> {
         self.eprop_.get::<D>(name)
     }
 
@@ -570,9 +571,9 @@ impl Properties {
     /// let mut m = Mesh::new();
     /// m.properties.add_halfedge_property::<u32>("h:my_prop",17);
     /// let ph = m.properties.get_halfedge_property::<u32>("h:my_prop");
-    /// assert!(ph.is_valid());
+    /// assert!(ph.is_some());
     /// ```
-    pub fn get_halfedge_property<D : 'static + Clone>(&self, name : & 'static str) -> PropertyHalfedge {
+    pub fn get_halfedge_property<D : 'static + Clone>(&self, name : & 'static str) -> Option<PropertyHalfedge> {
         self.hprop_.get::<D>(name)
     }
 
@@ -704,7 +705,6 @@ impl Mesh {
     ///
     /// let mut m = Mesh::new();
     /// let v = m.add_vertex();
-    /// assert!(v.is_valid());
     /// ```
     pub fn add_vertex(&mut self) -> Vertex {
         self.properties.vprop_.push();
@@ -727,11 +727,11 @@ impl Mesh {
     ///     vvec.push(m.add_vertex());
     /// }
     /// let f = m.add_face(&vvec);
-    /// assert!(f.is_valid());
+    /// assert!(f.is_some());
     /// ```
-    pub fn add_face(&mut self, vertices : & Vec<Vertex>) -> Face {
+    pub fn add_face(&mut self, vertices : & Vec<Vertex>) -> Option<Face> {
         let n = vertices.len();
-        let mut hvec = Vec::<Halfedge>::new();
+        let mut hvec = Vec::<Option<Halfedge>>::new();
         let mut new_hvec = Vec::<bool>::new();
         hvec.reserve(n);
         new_hvec.reserve(n);
@@ -739,12 +739,12 @@ impl Mesh {
         // Does the face to add is valid
         for i in 0..n {
             if !self.topology.is_boundary_vertex(vertices[i]) {
-                return Face::invalid();
+                return None;
             }
             hvec.push(self.topology.find_halfedge(vertices[i],vertices[(i+1)%n]));
-            new_hvec.push(!hvec[i].is_valid());
-            if !new_hvec[i] && !self.topology.is_boundary_halfedge(hvec[i]) {
-                return Face::invalid();
+            new_hvec.push(hvec[i].is_none());
+            if !new_hvec[i] && !self.topology.is_boundary_halfedge(hvec[i].unwrap()) {
+                return None;
             }
         }
 
@@ -752,7 +752,7 @@ impl Mesh {
         for i in 0..n {
             if new_hvec[i] {
                 let ii = (i+1)%n;
-                hvec[i] = self.new_edge(vertices[i], vertices[ii]);
+                hvec[i] = Some(self.new_edge(vertices[i], vertices[ii]));
             }
         }
 
@@ -760,7 +760,7 @@ impl Mesh {
         self.properties.fprop_.push();
         self.topology.fconn_.push();
         let f = Face::new(self.topology.fconn_.len()-1);
-        self.topology.fconn_[f] = FaceConnectivity::new(hvec[n-1]);
+        self.topology.fconn_[f] = FaceConnectivity::new(hvec[n-1].unwrap());
 
         // Setup halfedges
         let mut next_cache : Vec<(Halfedge,Halfedge)> = Vec::new();
@@ -769,8 +769,8 @@ impl Mesh {
         for i in 0..n {
             let ii = (i+1)%n;
             let v = vertices[ii];
-            let inner_prev = hvec[i];
-            let inner_next = hvec[ii];
+            let inner_prev = hvec[i].unwrap();
+            let inner_next = hvec[ii].unwrap();
 
             if new_hvec[i] || new_hvec[ii] {
                 let outer_prev = self.topology.opposite_halfedge(inner_next);
@@ -785,21 +785,23 @@ impl Mesh {
                     next_cache.push((outer_prev,boundary_next));
                     self.topology.set_halfedge(v,boundary_next);
                 } else { // both are new
-                    if !self.topology.halfedge(v).is_valid() {
-                        self.topology.set_halfedge(v,outer_next);
-                        next_cache.push((outer_prev,outer_next));
-                    } else {
-                        let boundary_next = self.topology.halfedge(v);
-                        let boundary_prev = self.topology.prev_halfedge(boundary_next);
-                        next_cache.push((boundary_prev,outer_next));
-                        next_cache.push((outer_prev,boundary_next));
+                    match self.topology.halfedge(v) {
+                        None => {
+                            self.topology.set_halfedge(v,outer_next);
+                            next_cache.push((outer_prev,outer_next));
+                        }
+                        Some(h) => {
+                            let boundary_prev = self.topology.prev_halfedge(h);
+                            next_cache.push((boundary_prev,outer_next));
+                            next_cache.push((outer_prev,h));
+                        }
                     }
                 }
                 next_cache.push((inner_prev,inner_next));
             } else {
-                needs_adjust[ii] = self.topology.halfedge(v) == inner_next;
+                needs_adjust[ii] = self.topology.halfedge(v).unwrap() == inner_next;
             }
-            self.topology.set_face(hvec[i],f);
+            self.topology.set_face(inner_prev,f);
         }
 
         // process cache
@@ -814,7 +816,7 @@ impl Mesh {
             }
         }
 
-        return f;
+        return Some(f);
     }
 
     /// allocate a new edge and returns the `Halfedge` from start to end
@@ -846,7 +848,7 @@ impl PropertyAccess<Vertex> for Properties {
     /// use lwmesh::property::PropertyAccess;
     ///
     /// let mut m = Mesh::new();
-    /// let prop = m.properties.add_vertex_property::<u32>("v:my_prop",17);
+    /// let prop = m.properties.add_vertex_property::<u32>("v:my_prop",17).unwrap();
     /// let v0 = m.add_vertex();
     /// assert_eq!(*m.properties.access::<u32>(prop,v0),17);
     /// ```
@@ -863,7 +865,7 @@ impl PropertyAccess<Vertex> for Properties {
     /// use lwmesh::property::PropertyAccess;
     ///
     /// let mut m = Mesh::new();
-    /// let prop = m.properties.add_vertex_property::<u32>("v:my_prop",17);
+    /// let prop = m.properties.add_vertex_property::<u32>("v:my_prop",17).unwrap();
     /// let v0 = m.add_vertex();
     /// assert_eq!(*m.properties.access::<u32>(prop,v0),17);
     /// *m.properties.access_mut::<u32>(prop,v0) = 42;
@@ -885,12 +887,12 @@ impl PropertyAccess<Face> for Properties {
     /// use lwmesh::handle::Vertex;
     ///
     /// let mut m = Mesh::new();
-    /// let prop = m.properties.add_face_property::<u32>("f:my_prop",17);
+    /// let prop = m.properties.add_face_property::<u32>("f:my_prop",17).unwrap();
     /// let mut vvec = Vec::<Vertex>::new();
     /// for _ in 0..3 {
     ///     vvec.push(m.add_vertex());
     /// }
-    /// let f = m.add_face(&vvec);
+    /// let f = m.add_face(&vvec).unwrap();
     /// assert_eq!(*m.properties.access::<u32>(prop,f),17);
     /// ```
     fn access<D : 'static + Clone>(&self, prop : PropertyFace, f : Face) -> &D{
@@ -907,12 +909,12 @@ impl PropertyAccess<Face> for Properties {
     /// use lwmesh::handle::Vertex;
     ///
     /// let mut m = Mesh::new();
-    /// let prop = m.properties.add_face_property::<u32>("f:my_prop",17);
+    /// let prop = m.properties.add_face_property::<u32>("f:my_prop",17).unwrap();
     /// let mut vvec = Vec::<Vertex>::new();
     /// for _ in 0..3 {
     ///     vvec.push(m.add_vertex());
     /// }
-    /// let f = m.add_face(&vvec);
+    /// let f = m.add_face(&vvec).unwrap();
     /// assert_eq!(*m.properties.access::<u32>(prop,f),17);
     /// *m.properties.access_mut::<u32>(prop,f) = 42;
     /// assert_eq!(*m.properties.access::<u32>(prop,f),42);
@@ -933,13 +935,13 @@ impl PropertyAccess<Edge> for Properties {
     /// use lwmesh::handle::Vertex;
     ///
     /// let mut m = Mesh::new();
-    /// let prop = m.properties.add_edge_property::<u32>("e:my_prop",17);
+    /// let prop = m.properties.add_edge_property::<u32>("e:my_prop",17).unwrap();
     /// let mut vvec = Vec::<Vertex>::new();
     /// for _ in 0..3 {
     ///     vvec.push(m.add_vertex());
     /// }
     /// m.add_face(&vvec);
-    /// let e = m.topology.edge(m.topology.find_halfedge(vvec[0],vvec[1]));
+    /// let e = m.topology.edge(m.topology.find_halfedge(vvec[0],vvec[1]).unwrap());
     /// assert_eq!(*m.properties.access::<u32>(prop,e),17);
     /// ```
     fn access<D : 'static + Clone>(&self, prop : PropertyEdge, e : Edge) -> &D{
@@ -956,13 +958,13 @@ impl PropertyAccess<Edge> for Properties {
     /// use lwmesh::handle::Vertex;
     ///
     /// let mut m = Mesh::new();
-    /// let prop = m.properties.add_edge_property::<u32>("e:my_prop",17);
+    /// let prop = m.properties.add_edge_property::<u32>("e:my_prop",17).unwrap();
     /// let mut vvec = Vec::<Vertex>::new();
     /// for _ in 0..3 {
     ///     vvec.push(m.add_vertex());
     /// }
     /// m.add_face(&vvec);
-    /// let e = m.topology.edge(m.topology.find_halfedge(vvec[0],vvec[1]));
+    /// let e = m.topology.edge(m.topology.find_halfedge(vvec[0],vvec[1]).unwrap());
     /// assert_eq!(*m.properties.access::<u32>(prop,e),17);
     /// *m.properties.access_mut::<u32>(prop,e) = 42;
     /// assert_eq!(*m.properties.access::<u32>(prop,e),42);
@@ -983,13 +985,13 @@ impl PropertyAccess<Halfedge> for Properties {
     /// use lwmesh::handle::Vertex;
     ///
     /// let mut m = Mesh::new();
-    /// let prop = m.properties.add_halfedge_property::<u32>("h:my_prop",17);
+    /// let prop = m.properties.add_halfedge_property::<u32>("h:my_prop",17).unwrap();
     /// let mut vvec = Vec::<Vertex>::new();
     /// for _ in 0..3 {
     ///     vvec.push(m.add_vertex());
     /// }
     /// m.add_face(&vvec);
-    /// let h = m.topology.find_halfedge(vvec[0],vvec[1]);
+    /// let h = m.topology.find_halfedge(vvec[0],vvec[1]).unwrap();
     /// assert_eq!(*m.properties.access::<u32>(prop,h),17);
     /// *m.properties.access_mut::<u32>(prop,h) = 42;
     /// assert_eq!(*m.properties.access::<u32>(prop,h),42);
@@ -1008,13 +1010,13 @@ impl PropertyAccess<Halfedge> for Properties {
     /// use lwmesh::handle::Vertex;
     ///
     /// let mut m = Mesh::new();
-    /// let prop = m.properties.add_halfedge_property::<u32>("h:my_prop",17);
+    /// let prop = m.properties.add_halfedge_property::<u32>("h:my_prop",17).unwrap();
     /// let mut vvec = Vec::<Vertex>::new();
     /// for _ in 0..3 {
     ///     vvec.push(m.add_vertex());
     /// }
     /// m.add_face(&vvec);
-    /// let h = m.topology.find_halfedge(vvec[0],vvec[1]);
+    /// let h = m.topology.find_halfedge(vvec[0],vvec[1]).unwrap();
     /// assert_eq!(*m.properties.access::<u32>(prop,h),17);
     /// *m.properties.access_mut::<u32>(prop,h) = 42;
     /// assert_eq!(*m.properties.access::<u32>(prop,h),42);
@@ -1037,12 +1039,12 @@ mod tests {
 
         let v0 = m.add_vertex();
         assert!(m.properties.vprop_.len() == 1);
-        assert!(v0.idx().unwrap() == 0);
+        assert!(v0.idx() == 0);
 
         m.add_vertex();
         let v2 = m.add_vertex();
         assert!(m.properties.vprop_.len() == 3);
-        assert!(v2.idx().unwrap() == 2);
+        assert!(v2.idx() == 2);
     }
 
     #[test]
@@ -1070,7 +1072,7 @@ mod tests {
         vvec.push(v1);
         vvec.push(v2);
         let f = m.add_face(&vvec);
-        assert!(f.is_valid());
+        assert!(f.is_some());
         assert!(m.topology.n_faces() == 1);
 
         vvec.clear();
@@ -1078,11 +1080,11 @@ mod tests {
         vvec.push(v1);
         vvec.push(v3);
         let f = m.add_face(&vvec);
-        assert!(f.is_valid());
+        assert!(f.is_some());
         assert!(m.topology.n_faces() == 2);
 
         let f = m.add_face(&vvec);
-        assert!(!f.is_valid());
+        assert!(f.is_none());
         assert!(m.topology.n_faces() == 2);
 
         let v4 = m.add_vertex();
@@ -1091,7 +1093,7 @@ mod tests {
         vvec.push(v1);
         vvec.push(v4);
         let f = m.add_face(&vvec);
-        assert!(!f.is_valid());
+        assert!(f.is_none());
         assert!(m.topology.n_faces() == 2);
     }
 
@@ -1100,35 +1102,35 @@ mod tests {
         let mut m = Mesh::new();
 
         // Vertex
-        let prop = m.properties.add_vertex_property::<u32>("v:my_prop",17);
+        let prop = m.properties.add_vertex_property::<u32>("v:my_prop",17).unwrap();
         let v0 = m.add_vertex();
         assert_eq!(*m.properties.access::<u32>(prop,v0),17);
         *m.properties.access_mut::<u32>(prop,v0) = 42;
         assert_eq!(*m.properties.access::<u32>(prop,v0),42);
 
         // Face
-        let prop = m.properties.add_face_property::<u32>("f:my_prop",17);
+        let prop = m.properties.add_face_property::<u32>("f:my_prop",17).unwrap();
         let mut vvec = Vec::<Vertex>::new();
         let v1 = m.add_vertex();
         let v2 = m.add_vertex();
         vvec.push(v0);
         vvec.push(v1);
         vvec.push(v2);
-        let f = m.add_face(&vvec);
+        let f = m.add_face(&vvec).unwrap();
         assert_eq!(*m.properties.access::<u32>(prop,f),17);
         *m.properties.access_mut::<u32>(prop,f) = 42;
         assert_eq!(*m.properties.access::<u32>(prop,f),42);
 
         // Edge
-        let prop = m.properties.add_edge_property::<u32>("v:my_prop",17);
-        let e = m.topology.edge(m.topology.find_halfedge(v0,v1));
+        let prop = m.properties.add_edge_property::<u32>("v:my_prop",17).unwrap();
+        let e = m.topology.edge(m.topology.find_halfedge(v0,v1).unwrap());
         assert_eq!(*m.properties.access::<u32>(prop,e),17);
         *m.properties.access_mut::<u32>(prop,e) = 42;
         assert_eq!(*m.properties.access::<u32>(prop,e),42);
 
         // Halfedge
-        let prop = m.properties.add_halfedge_property::<u32>("v:my_prop",17);
-        let h = m.topology.find_halfedge(v2,v0);
+        let prop = m.properties.add_halfedge_property::<u32>("v:my_prop",17).unwrap();
+        let h = m.topology.find_halfedge(v2,v0).unwrap();
         assert_eq!(*m.properties.access::<u32>(prop,h),17);
         *m.properties.access_mut::<u32>(prop,h) = 42;
         assert_eq!(*m.properties.access::<u32>(prop,h),42);
@@ -1138,7 +1140,7 @@ mod tests {
     #[should_panic]
     fn invalid_property() {
         let mut m = Mesh::new();
-        let prop = m.properties.get_vertex_property::<u32>("v:my_prop");
+        let prop = m.properties.get_vertex_property::<u32>("v:my_prop").unwrap();
         let v0 = m.add_vertex();
         m.properties.access::<u32>(prop,v0);
     }

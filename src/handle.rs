@@ -28,26 +28,10 @@ pub type PropertyHalfedge = Handle<Halfedge>;
 #[derive(Copy, Clone)]
 pub struct Handle<A> {
     type_ : PhantomData<A>,
-    index_ : Option<usize>,
+    index_ : usize,
 }
 
 impl<A> Handle<A> {
-    /// Constructs an invalid `Handle<A>`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use lwmesh::handle::Vertex;
-    ///
-    /// let v = Vertex::invalid();
-    /// ```
-    pub fn invalid() -> Handle<A> {
-        Handle {
-            type_ : PhantomData,
-            index_ : None,
-        }
-    }
-
     /// Constructs a new `Handle<A>`.
     ///
     /// # Examples
@@ -60,7 +44,7 @@ impl<A> Handle<A> {
     pub fn new(idx : usize) -> Handle<A> {
         Handle {
             type_ : PhantomData,
-            index_ : Some(idx),
+            index_ : idx,
         }
     }
 
@@ -72,39 +56,10 @@ impl<A> Handle<A> {
     /// use lwmesh::handle::Vertex;
     ///
     /// let v = Vertex::new(42);
-    /// assert!(v.idx().unwrap()==42);
+    /// assert!(v.idx()==42);
     /// ```
-    pub fn idx(&self) -> Option<usize> {
+    pub fn idx(&self) -> usize {
         self.index_
-    }
-
-    /// Reset the `Handle<A>`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use lwmesh::handle::Vertex;
-    ///
-    /// let mut v = Vertex::new(42);
-    /// v.reset();
-    /// assert!(!v.is_valid());
-    /// ```
-    pub fn reset(&mut self) {
-        self.index_ = None;
-    }
-
-    /// Returns if the `Handle<A>` is valid.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use lwmesh::handle::Vertex;
-    ///
-    /// let mut v = Vertex::new(42);
-    /// assert!(v.is_valid());
-    /// ```
-    pub fn is_valid(&self) -> bool {
-        self.index_.is_some()
     }
 }
 
@@ -133,30 +88,10 @@ mod tests {
     use std::cmp::Ordering;
 
     #[test]
-    fn invalid() {
-        let handle = Vertex::invalid();
-        assert!(!handle.is_valid());
-        assert!(handle.idx().is_none());
-    }
-
-    #[test]
     fn idx() {
         let idx = 42;
         let handle = Vertex::new(idx);
-        assert!(handle.is_valid());
-
-        assert!(handle.idx().is_some());
-        assert!(handle.idx().unwrap() == idx);
-    }
-
-    #[test]
-    fn reset() {
-        let idx = 42;
-        let mut handle = Vertex::new(idx);
-        assert!(handle.is_valid());
-
-        handle.reset();
-        assert!(!handle.is_valid());
+        assert!(handle.idx() == idx);
     }
 
     #[test]
