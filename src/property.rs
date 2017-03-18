@@ -299,7 +299,7 @@ pub trait PropertyAccess<H> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use handle::*;
+    use handle::Vertex;
 
     #[test]
     fn reserve() {

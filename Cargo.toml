@@ -4,7 +4,12 @@ version = "0.1.0"
 authors = ["Thibaud Lambert <thibaud.lambert@gmail.com>"]
 
 [features]
-default = ["obj-rs"]
+default = ["mesh_io"]
+mesh_io = ["lwobj","nalgebra"]
 
 [dependencies]
-obj-rs = { version = "0.4.17", optional = true}
+lwobj = {git = "https://github.com/Daepso/lwobj", version = "0.1", optional = true}
+nalgebra = { version = "0.11.1", optional = true}
+
+[[example]]
+name = "loop_subdivision"

@@ -177,6 +177,27 @@ impl Topology {
         self.vconn_[v].halfedge_
     }
 
+    /// Returns an outgoing `Haldedge` of `Edge` `e`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::handle::Vertex;
+    ///
+    /// let mut m = Mesh::new();
+    /// let mut vvec = Vec::<Vertex>::new();
+    /// for _ in 0..3 {
+    ///     vvec.push(m.add_vertex());
+    /// }
+    /// let f = m.add_face(&vvec);
+    /// let h = m.topology.halfedge(vvec[0]).unwrap();
+    /// assert!(m.topology.from_vertex(h) == vvec[0]);
+    /// ```
+    pub fn edge_halfedge(&self, e : Edge, i : usize) -> Halfedge {
+        Halfedge::new(e.idx()*2+i)
+    }
+
     /// Returns an outgoing `Haldedge` of `Vertex` `v`.
     ///
     /// # Examples
@@ -712,6 +733,31 @@ impl Mesh {
         Vertex::new(self.topology.vconn_.len()-1)
     }
 
+    /// Adds new vertices to the `Mesh`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::mesh::Mesh;
+    ///
+    /// let mut m = Mesh::new();
+    /// let vec = m.add_vertices(17);
+    /// assert_eq!(m.topology.n_vertices(),17);
+    /// assert_eq!(vec.len(),17);
+    /// ```
+    pub fn add_vertices(&mut self, nb : usize) -> Vec<Vertex> {
+        let mut vec : Vec<Vertex> = Vec::new();
+        if self.vertex_capacity() < self.topology.n_vertices()+nb {
+            let new_cap = self.topology.n_vertices()+nb;
+            self.vertex_reserve(new_cap);
+        }
+        for _ in 0..nb {
+            self.properties.vprop_.push();
+            self.topology.vconn_.push();
+            vec.push(Vertex::new(self.topology.vconn_.len()-1));
+        }
+        return vec;
+    }
 
     /// Adds a new `Face` to the `Mesh`.
     ///
