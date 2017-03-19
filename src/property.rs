@@ -74,7 +74,7 @@ impl<T,D> IndexMut<Handle<T>> for PropertyVec<Handle<T>, D> {
 /// `H` is the type of the Handle to acces the data.
 pub struct PropertyContainer<H> {
     handle_ : PhantomData<H>,
-    parrays_ : Vec<(& 'static str,Box<ResizableVec>)>,
+    pub parrays_ : Vec<(& 'static str,Box<ResizableVec>)>,
     size_ : usize,
     capacity_ : usize
 }
@@ -168,7 +168,7 @@ impl<T : 'static> PropertyContainer<Handle<T>> {
     /// let prop = pcontainer.add::<u32>("my_prop",0);
     /// assert!(prop.is_none());
     /// ```
-    pub fn add<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> Option<Handle<Handle<T> > > {
+    pub fn add<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> Option<Handle<(T,D)> > {
         for &(n, _) in self.parrays_.iter() {
             if n == name {
                 return None;
@@ -181,7 +181,7 @@ impl<T : 'static> PropertyContainer<Handle<T>> {
         }
         let p = Box::new(gv);
         self.parrays_.push((name,p));
-        return Some(Handle::<Handle<T> >::new(self.parrays_.len()-1));
+        return Some(Handle::<(T,D)>::new(self.parrays_.len()-1));
     }
 
     /// Get a property by its name. If it does not exist, return `None`.
@@ -203,11 +203,11 @@ impl<T : 'static> PropertyContainer<Handle<T>> {
     /// let prop = pcontainer.get::<u32>("my_prop");
     /// assert!(prop.is_some());
     /// ```
-    pub fn get<D : 'static + Clone>(&self, name : & 'static str) -> Option<Handle<Handle<T> > > {
+    pub fn get<D : 'static + Clone>(&self, name : & 'static str) -> Option<Handle<(T,D)> > {
         for (i, &(n, ref b)) in self.parrays_.iter().enumerate() {
             if n == name {
                 if b.as_any().downcast_ref::<PropertyVec<Handle<T>,D>>().is_some() {
-                    return Some(Handle::<Handle<T> >::new(i));
+                    return Some(Handle::<(T,D)>::new(i));
                 }
             }
         }
@@ -237,64 +237,53 @@ impl<T : 'static> PropertyContainer<Handle<T>> {
             b.push();
         }
     }
+}
 
-    /// Acces a property by its name. If it does not exist, return `None`.
+impl<T : 'static, D : 'static> Index<(Handle<(T,D)>,Handle<T>)> for PropertyContainer<Handle<T>> {
+    type Output = D;
+
+    /// Access the element of the vertex 'Property' prop indexing by 'Vertex' v.
     ///
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::property::PropertyContainer;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::mesh::Mesh;
     ///
-    /// let mut pcontainer = PropertyContainer::<Vertex>::new();
-    ///
-    /// let prop = pcontainer.add::<u32>("my_prop",17).unwrap();
-    ///
-    /// pcontainer.push();
-    /// let v = Vertex::new(pcontainer.len()-1);
-    ///
-    /// assert_eq!(*pcontainer.access::<u32>(prop,v),17);
-    ///
+    /// let mut m = Mesh::new();
+    /// let prop = m.properties.add_vertex_property::<u32>("v:my_prop",17).unwrap();
+    /// let v0 = m.add_vertex();
+    /// assert_eq!(m.properties[(prop,v0)],17);
     /// ```
-    pub fn access<D : 'static>(&self, prop : Handle<Handle<T> >, h : Handle<T>) -> &D {
-        let (_,ref b) = self.parrays_[prop.idx()];
+    fn index(&self, (p,h): (Handle<(T,D)>,Handle<T>)) -> &D {
+        let (_,ref b) = self.parrays_[p.idx()];
         let pa : &PropertyVec<Handle<T>,D> = b.as_any().downcast_ref::<PropertyVec<Handle<T>,D>>().unwrap();
         return &pa[h];
     }
+}
 
-    /// Acces a property by its name. If it does not exist, return `None`.
+impl<T : 'static, D : 'static> IndexMut<(Handle<(T,D)>,Handle<T>)> for PropertyContainer<Handle<T>> {
+
+    /// Mutable access to the element of the vertex 'Property' prop indexing by 'Vertex' v.
     ///
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::property::PropertyContainer;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::mesh::Mesh;
     ///
-    /// let mut pcontainer = PropertyContainer::<Vertex>::new();
-    ///
-    /// let prop = pcontainer.add::<u32>("my_prop",17).unwrap();
-    ///
-    /// pcontainer.push();
-    /// let v = Vertex::new(pcontainer.len()-1);
-    ///
-    /// assert_eq!(*pcontainer.access::<u32>(prop,v),17u32);
-    ///
-    /// *pcontainer.access_mut::<u32>(prop,v) = 42;
-    ///
-    /// assert_eq!(*pcontainer.access::<u32>(prop,v),42u32);
-    ///
+    /// let mut m = Mesh::new();
+    /// let prop = m.properties.add_vertex_property::<u32>("v:my_prop",17).unwrap();
+    /// let v0 = m.add_vertex();
+    /// assert_eq!(m.properties[(prop,v0)],17);
+    /// m.properties[(prop,v0)] = 42;
+    /// assert_eq!(m.properties[(prop,v0)],42);
     /// ```
-    pub fn access_mut<D : 'static>(&mut self, prop : Handle<Handle<T> >, h : Handle<T>) -> &mut D {
-        let (_,ref mut b) = self.parrays_[prop.idx()];
+    fn index_mut(&mut self, (p,h): (Handle<(T,D)>,Handle<T>)) -> &mut D {
+        let (_,ref mut b) = self.parrays_[p.idx()];
         let pa : &mut PropertyVec<Handle<T>,D> = b.as_any_mut().downcast_mut::<PropertyVec<Handle<T>,D>>().unwrap();
         return &mut pa[h];
     }
 }
 
-pub trait PropertyAccess<H> {
-    fn access<D : 'static + Clone>(&self, prop : Handle<H>, h : H) -> &D;
-    fn access_mut<D : 'static + Clone>(&mut self, prop : Handle<H>, h : H) -> &mut D;
-}
 
 #[cfg(test)]
 mod tests {
@@ -362,8 +351,8 @@ mod tests {
         pcontainer.push();
         let v1 = Vertex::new(pcontainer.len()-1);
         assert!(2 == pcontainer.len());
-        assert_eq!(*pcontainer.access::<u32>(prop,v0),17);
-        assert_eq!(*pcontainer.access::<u32>(prop,v1),17);
+        assert_eq!(pcontainer[(prop,v0)],17);
+        assert_eq!(pcontainer[(prop,v1)],17);
     }
 
     #[test]
@@ -372,9 +361,9 @@ mod tests {
         let prop = pcontainer.add::<u32>("v:my_prop",17).unwrap();
         pcontainer.push();
         let v = Vertex::new(pcontainer.len()-1);
-        assert_eq!(*pcontainer.access::<u32>(prop,v),17);
-        *pcontainer.access_mut::<u32>(prop,v) = 42;
-        assert_eq!(*pcontainer.access::<u32>(prop,v),42);
+        assert_eq!(pcontainer[(prop,v)],17);
+        pcontainer[(prop,v)] = 42;
+        assert_eq!(pcontainer[(prop,v)],42);
     }
 
     #[test]
@@ -383,6 +372,6 @@ mod tests {
         let mut pcontainer = PropertyContainer::<Vertex>::new();
         let v = Vertex::new(8);
         let prop = pcontainer.add::<u32>("v:my_prop",17).unwrap();
-        pcontainer.access::<u32>(prop,v);
+        pcontainer[(prop,v)];
     }
 }

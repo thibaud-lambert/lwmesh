@@ -454,7 +454,6 @@ impl Topology {
 #[cfg(test)]
 mod tests {
     use mesh::*;
-    use property::PropertyAccess;
     use handle::Vertex;
 
     #[test]
@@ -471,23 +470,23 @@ mod tests {
         m.add_face(&vvec);
 
         for v in m.topology.vertices() {
-            *m.properties.access_mut::<u32>(vprop,v) += 1;
-            assert_eq!(18,*m.properties.access::<u32>(vprop,v));
+            m.properties[(vprop,v)] += 1;
+            assert_eq!(18,m.properties[(vprop,v)]);
         }
 
         for f in m.topology.faces() {
-            *m.properties.access_mut::<u32>(fprop,f) += 1;
-            assert_eq!(18,*m.properties.access::<u32>(fprop,f));
+            m.properties[(fprop,f)] += 1;
+            assert_eq!(18,m.properties[(fprop,f)]);
         }
 
         for e in m.topology.edges() {
-            *m.properties.access_mut::<u32>(eprop,e) += 1;
-            assert_eq!(18,*m.properties.access::<u32>(eprop,e));
+            m.properties[(eprop,e)] += 1;
+            assert_eq!(18,m.properties[(eprop,e)]);
         }
 
         for h in m.topology.halfedges() {
-            *m.properties.access_mut::<u32>(hprop,h) += 1;
-            assert_eq!(18,*m.properties.access::<u32>(hprop,h));
+            m.properties[(hprop,h)] += 1;
+            assert_eq!(18,m.properties[(hprop,h)]);
         }
     }
 

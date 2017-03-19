@@ -4,7 +4,6 @@ use std::io;
 use std::ffi::OsString;
 use std::io::BufReader;
 use mesh::*;
-use property::*;
 use handle::*;
 use lwobj::*;
 use nalgebra::Vector3;
@@ -72,7 +71,7 @@ impl Mesh {
         let pos = m.properties.add_vertex_property::<Vector3<f32>>("v:position",Vector3::new(0f32,0f32,0f32)).unwrap();
         for (x,y,z,_) in obj.vertices {
             let v = m.add_vertex();
-            *m.properties.access_mut::<Vector3<f32>>(pos,v) = Vector3::new(x,y,z);
+            m.properties[(pos,v)] = Vector3::new(x,y,z);
         }
         for f in obj.faces {
             let mut vvec : Vec<Vertex> = Vec::new();
@@ -127,7 +126,7 @@ impl Mesh {
         };
         // let posprop = self.properties.get_vertex_property::<Vector3<f32>>("v:position").unwrap();
         for v in self.topology.vertices() {
-            let pos = self.properties.access::<Vector3<f32>>(posprop, v);
+            let pos = self.properties[(posprop, v)];
             obj_data.vertices.push((pos.x,pos.y,pos.z,1.));
         }
         let mut obj = Object {
@@ -156,7 +155,6 @@ mod tests {
     use std::io::BufWriter;
     use handle::Vertex;
     use nalgebra::Vector3;
-    use property::PropertyAccess;
     use std::str;
 
     #[test]
@@ -220,13 +218,13 @@ mod tests {
         let mut m = Mesh::new();
         let pos = m.properties.add_vertex_property::<Vector3<f32>>("v:position",Vector3::new(0f32,0f32,0f32)).unwrap();
         let v0 = m.add_vertex();
-        *m.properties.access_mut::<Vector3<f32>>(pos,v0) = Vector3::new(0.,0.,0.);
+        m.properties[(pos,v0)] = Vector3::new(0.,0.,0.);
         let v1 = m.add_vertex();
-        *m.properties.access_mut::<Vector3<f32>>(pos,v1) = Vector3::new(0.,0.5,1.);
+        m.properties[(pos,v1)] = Vector3::new(0.,0.5,1.);
         let v2 = m.add_vertex();
-        *m.properties.access_mut::<Vector3<f32>>(pos,v2) = Vector3::new(0.5,1.,0.);
+        m.properties[(pos,v2)] = Vector3::new(0.5,1.,0.);
         let v3 = m.add_vertex();
-        *m.properties.access_mut::<Vector3<f32>>(pos,v3) = Vector3::new(1.,1.,1.);
+        m.properties[(pos,v3)] = Vector3::new(1.,1.,1.);
         let mut vvec = Vec::<Vertex>::new();
         vvec.push(v0);
         vvec.push(v1);

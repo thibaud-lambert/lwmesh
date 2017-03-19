@@ -16,10 +16,10 @@ pub type Vertex = Handle<PhantomVertex>;
 pub type Face = Handle<PhantomFace>;
 pub type Edge = Handle<PhantomEdge>;
 pub type Halfedge = Handle<PhantomHalfedge>;
-pub type PropertyVertex = Handle<Vertex>;
-pub type PropertyFace = Handle<Face>;
-pub type PropertyEdge = Handle<Edge>;
-pub type PropertyHalfedge = Handle<Halfedge>;
+pub type PropertyVertex<T> = Handle<(PhantomVertex,T)>;
+pub type PropertyFace<T> = Handle<(PhantomFace,T)>;
+pub type PropertyEdge<T> = Handle<(PhantomEdge,T)>;
+pub type PropertyHalfedge<T> = Handle<(PhantomHalfedge,T)>;
 
 /// A basic handle
 ///

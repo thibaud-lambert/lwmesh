@@ -1,6 +1,8 @@
 use property::*;
 use handle::*;
 use connectivity::*;
+use std::ops::Index;
+use std::ops::IndexMut;
 
 pub struct Topology {
     vconn_ : PropertyVec<Vertex,VertexConnectivity>,
@@ -485,7 +487,7 @@ impl Properties {
     /// let pv = m.properties.add_vertex_property::<u32>("v:my_prop",17);
     /// assert!(pv.is_some());
     /// ```
-    pub fn add_vertex_property<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> Option<PropertyVertex> {
+    pub fn add_vertex_property<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> Option<PropertyVertex<D>> {
         self.vprop_.add::<D>(name,default_value)
     }
 
@@ -500,7 +502,7 @@ impl Properties {
     /// let pf = m.properties.add_face_property::<u32>("f:my_prop",17);
     /// assert!(pf.is_some());
     /// ```
-    pub fn add_face_property<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> Option<PropertyFace> {
+    pub fn add_face_property<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> Option<PropertyFace<D>> {
         self.fprop_.add::<D>(name,default_value)
     }
 
@@ -515,7 +517,7 @@ impl Properties {
     /// let pe = m.properties.add_edge_property::<u32>("e:my_prop",17);
     /// assert!(pe.is_some());
     /// ```
-    pub fn add_edge_property<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> Option<PropertyEdge> {
+    pub fn add_edge_property<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> Option<PropertyEdge<D>> {
         self.eprop_.add::<D>(name,default_value)
     }
 
@@ -530,7 +532,7 @@ impl Properties {
     /// let ph = m.properties.add_halfedge_property::<u32>("h:my_prop",17);
     /// assert!(ph.is_some());
     /// ```
-    pub fn add_halfedge_property<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> Option<PropertyHalfedge> {
+    pub fn add_halfedge_property<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> Option<PropertyHalfedge<D>> {
         self.hprop_.add::<D>(name,default_value)
     }
 
@@ -546,7 +548,7 @@ impl Properties {
     /// let pv = m.properties.get_vertex_property::<u32>("v:my_prop");
     /// assert!(pv.is_some());
     /// ```
-    pub fn get_vertex_property<D : 'static + Clone>(&self, name : & 'static str) -> Option<PropertyVertex> {
+    pub fn get_vertex_property<D : 'static + Clone>(&self, name : & 'static str) -> Option<PropertyVertex<D>> {
         self.vprop_.get::<D>(name)
     }
 
@@ -562,7 +564,7 @@ impl Properties {
     /// let pf = m.properties.get_face_property::<u32>("f:my_prop");
     /// assert!(pf.is_some());
     /// ```
-    pub fn get_face_property<D : 'static + Clone>(&self, name : & 'static str) -> Option<PropertyFace> {
+    pub fn get_face_property<D : 'static + Clone>(&self, name : & 'static str) -> Option<PropertyFace<D>> {
         self.fprop_.get::<D>(name)
     }
 
@@ -578,7 +580,7 @@ impl Properties {
     /// let pe = m.properties.get_edge_property::<u32>("e:my_prop");
     /// assert!(pe.is_some());
     /// ```
-    pub fn get_edge_property<D : 'static + Clone>(&self, name : & 'static str) -> Option<PropertyEdge> {
+    pub fn get_edge_property<D : 'static + Clone>(&self, name : & 'static str) -> Option<PropertyEdge<D>> {
         self.eprop_.get::<D>(name)
     }
 
@@ -594,7 +596,7 @@ impl Properties {
     /// let ph = m.properties.get_halfedge_property::<u32>("h:my_prop");
     /// assert!(ph.is_some());
     /// ```
-    pub fn get_halfedge_property<D : 'static + Clone>(&self, name : & 'static str) -> Option<PropertyHalfedge> {
+    pub fn get_halfedge_property<D : 'static + Clone>(&self, name : & 'static str) -> Option<PropertyHalfedge<D>> {
         self.hprop_.get::<D>(name)
     }
 
@@ -884,23 +886,27 @@ impl Mesh {
     }
 }
 
-impl PropertyAccess<Vertex> for Properties {
+impl<D : 'static> Index<(PropertyVertex<D>,Vertex)> for Properties {
+    type Output = D;
+
     /// Access the element of the vertex 'Property' prop indexing by 'Vertex' v.
     ///
     /// # Examples
     ///
     /// ```
     /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::property::PropertyAccess;
     ///
     /// let mut m = Mesh::new();
     /// let prop = m.properties.add_vertex_property::<u32>("v:my_prop",17).unwrap();
     /// let v0 = m.add_vertex();
-    /// assert_eq!(*m.properties.access::<u32>(prop,v0),17);
+    /// assert_eq!(m.properties[(prop,v0)],17);
     /// ```
-    fn access<D : 'static + Clone>(&self, prop : PropertyVertex, v : Vertex) -> &D{
-        self.vprop_.access::<D>(prop,v)
+    fn index(&self, (p,v): (PropertyVertex<D>,Vertex)) -> &D {
+        &self.vprop_[(p,v)]
     }
+}
+
+impl<D : 'static> IndexMut<(PropertyVertex<D>,Vertex)> for Properties {
 
     /// Mutable access to the element of the vertex 'Property' prop indexing by 'Vertex' v.
     ///
@@ -908,28 +914,28 @@ impl PropertyAccess<Vertex> for Properties {
     ///
     /// ```
     /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::property::PropertyAccess;
     ///
     /// let mut m = Mesh::new();
     /// let prop = m.properties.add_vertex_property::<u32>("v:my_prop",17).unwrap();
     /// let v0 = m.add_vertex();
-    /// assert_eq!(*m.properties.access::<u32>(prop,v0),17);
-    /// *m.properties.access_mut::<u32>(prop,v0) = 42;
-    /// assert_eq!(*m.properties.access::<u32>(prop,v0),42);
+    /// assert_eq!(m.properties[(prop,v0)],17);
+    /// m.properties[(prop,v0)] = 42;
+    /// assert_eq!(m.properties[(prop,v0)],42);
     /// ```
-    fn access_mut<D : 'static + Clone>(&mut self, prop : PropertyVertex, v : Vertex) -> &mut D{
-        self.vprop_.access_mut::<D>(prop,v)
+    fn index_mut(&mut self, (p,v): (PropertyVertex<D>,Vertex)) -> &mut D {
+        &mut self.vprop_[(p,v)]
     }
 }
 
-impl PropertyAccess<Face> for Properties {
+impl<D : 'static> Index<(PropertyFace<D>,Face)> for Properties {
+    type Output = D;
+
     /// Access the element of the face 'Property' prop indexing by 'Face' f.
     ///
     /// # Examples
     ///
     /// ```
     /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::property::PropertyAccess;
     /// use lwmesh::handle::Vertex;
     ///
     /// let mut m = Mesh::new();
@@ -939,11 +945,14 @@ impl PropertyAccess<Face> for Properties {
     ///     vvec.push(m.add_vertex());
     /// }
     /// let f = m.add_face(&vvec).unwrap();
-    /// assert_eq!(*m.properties.access::<u32>(prop,f),17);
+    /// assert_eq!(m.properties[(prop,f)],17);
     /// ```
-    fn access<D : 'static + Clone>(&self, prop : PropertyFace, f : Face) -> &D{
-        self.fprop_.access::<D>(prop,f)
+    fn index(&self, (p,f): (PropertyFace<D>,Face)) -> &D {
+        &self.fprop_[(p,f)]
     }
+}
+
+impl<D : 'static> IndexMut<(PropertyFace<D>,Face)> for Properties {
 
     /// Mutable access to the element of the face 'Property' prop indexing by 'Face' f.
     ///
@@ -951,7 +960,6 @@ impl PropertyAccess<Face> for Properties {
     ///
     /// ```
     /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::property::PropertyAccess;
     /// use lwmesh::handle::Vertex;
     ///
     /// let mut m = Mesh::new();
@@ -961,38 +969,41 @@ impl PropertyAccess<Face> for Properties {
     ///     vvec.push(m.add_vertex());
     /// }
     /// let f = m.add_face(&vvec).unwrap();
-    /// assert_eq!(*m.properties.access::<u32>(prop,f),17);
-    /// *m.properties.access_mut::<u32>(prop,f) = 42;
-    /// assert_eq!(*m.properties.access::<u32>(prop,f),42);
+    /// assert_eq!(m.properties[(prop,f)],17);
+    /// m.properties[(prop,f)] = 42;
+    /// assert_eq!(m.properties[(prop,f)],42);
     /// ```
-    fn access_mut<D : 'static + Clone>(&mut self, prop : PropertyFace, f : Face) -> &mut D{
-        self.fprop_.access_mut::<D>(prop,f)
+    fn index_mut(&mut self, (p,f): (PropertyFace<D>,Face)) -> &mut D {
+        &mut self.fprop_[(p,f)]
     }
 }
 
-impl PropertyAccess<Edge> for Properties {
-    /// Access the element of the edge 'Property' prop indexing by 'Edge' e.
+impl<D : 'static> Index<(PropertyEdge<D>,Edge)> for Properties {
+    type Output = D;
+
+    /// Access the element of the face 'Property' prop indexing by 'Face' f.
     ///
     /// # Examples
     ///
     /// ```
     /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::property::PropertyAccess;
     /// use lwmesh::handle::Vertex;
     ///
     /// let mut m = Mesh::new();
-    /// let prop = m.properties.add_edge_property::<u32>("e:my_prop",17).unwrap();
+    /// let prop = m.properties.add_face_property::<u32>("f:my_prop",17).unwrap();
     /// let mut vvec = Vec::<Vertex>::new();
     /// for _ in 0..3 {
     ///     vvec.push(m.add_vertex());
     /// }
-    /// m.add_face(&vvec);
-    /// let e = m.topology.edge(m.topology.find_halfedge(vvec[0],vvec[1]).unwrap());
-    /// assert_eq!(*m.properties.access::<u32>(prop,e),17);
+    /// let f = m.add_face(&vvec).unwrap();
+    /// assert_eq!(m.properties[(prop,f)],17);
     /// ```
-    fn access<D : 'static + Clone>(&self, prop : PropertyEdge, e : Edge) -> &D{
-        self.eprop_.access::<D>(prop,e)
+    fn index(&self, (p,e): (PropertyEdge<D>,Edge)) -> &D {
+        &self.eprop_[(p,e)]
     }
+}
+
+impl<D : 'static> IndexMut<(PropertyEdge<D>,Edge)> for Properties {
 
     /// Mutable access to the element of the edge 'Property' prop indexing by 'Edge' e.
     ///
@@ -1000,7 +1011,6 @@ impl PropertyAccess<Edge> for Properties {
     ///
     /// ```
     /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::property::PropertyAccess;
     /// use lwmesh::handle::Vertex;
     ///
     /// let mut m = Mesh::new();
@@ -1011,23 +1021,24 @@ impl PropertyAccess<Edge> for Properties {
     /// }
     /// m.add_face(&vvec);
     /// let e = m.topology.edge(m.topology.find_halfedge(vvec[0],vvec[1]).unwrap());
-    /// assert_eq!(*m.properties.access::<u32>(prop,e),17);
-    /// *m.properties.access_mut::<u32>(prop,e) = 42;
-    /// assert_eq!(*m.properties.access::<u32>(prop,e),42);
+    /// assert_eq!(m.properties[(prop,e)],17);
+    /// m.properties[(prop,e)] = 42;
+    /// assert_eq!(m.properties[(prop,e)],42);
     /// ```
-    fn access_mut<D : 'static + Clone>(&mut self, prop : PropertyEdge, e : Edge) -> &mut D{
-        self.eprop_.access_mut::<D>(prop,e)
+    fn index_mut(&mut self, (p,e): (PropertyEdge<D>,Edge)) -> &mut D {
+        &mut self.eprop_[(p,e)]
     }
 }
 
-impl PropertyAccess<Halfedge> for Properties {
+impl<D : 'static> Index<(PropertyHalfedge<D>,Halfedge)> for Properties {
+    type Output = D;
+
     /// Access the element of the halfedge 'Property' prop indexing by 'Halfedge' h.
     ///
     /// # Examples
     ///
     /// ```
     /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::property::PropertyAccess;
     /// use lwmesh::handle::Vertex;
     ///
     /// let mut m = Mesh::new();
@@ -1038,13 +1049,16 @@ impl PropertyAccess<Halfedge> for Properties {
     /// }
     /// m.add_face(&vvec);
     /// let h = m.topology.find_halfedge(vvec[0],vvec[1]).unwrap();
-    /// assert_eq!(*m.properties.access::<u32>(prop,h),17);
-    /// *m.properties.access_mut::<u32>(prop,h) = 42;
-    /// assert_eq!(*m.properties.access::<u32>(prop,h),42);
+    /// assert_eq!(m.properties[(prop,h)],17);
+    /// m.properties[(prop,h)] = 42;
+    /// assert_eq!(m.properties[(prop,h)],42);
     /// ```
-    fn access<D : 'static + Clone>(&self, prop : PropertyHalfedge, h : Halfedge) -> &D{
-        self.hprop_.access::<D>(prop,h)
+    fn index(&self, (p,h): (PropertyHalfedge<D>,Halfedge)) -> &D {
+        &self.hprop_[(p,h)]
     }
+}
+
+impl<D : 'static> IndexMut<(PropertyHalfedge<D>,Halfedge)> for Properties {
 
     /// Mutable access to the element of the halfedge 'Property' prop indexing by 'Halfedge' h.
     ///
@@ -1052,7 +1066,6 @@ impl PropertyAccess<Halfedge> for Properties {
     ///
     /// ```
     /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::property::PropertyAccess;
     /// use lwmesh::handle::Vertex;
     ///
     /// let mut m = Mesh::new();
@@ -1063,12 +1076,12 @@ impl PropertyAccess<Halfedge> for Properties {
     /// }
     /// m.add_face(&vvec);
     /// let h = m.topology.find_halfedge(vvec[0],vvec[1]).unwrap();
-    /// assert_eq!(*m.properties.access::<u32>(prop,h),17);
-    /// *m.properties.access_mut::<u32>(prop,h) = 42;
-    /// assert_eq!(*m.properties.access::<u32>(prop,h),42);
+    /// assert_eq!(m.properties[(prop,h)],17);
+    /// m.properties[(prop,h)] = 42;
+    /// assert_eq!(m.properties[(prop,h)],42);
     /// ```
-    fn access_mut<D : 'static + Clone>(&mut self, prop : PropertyHalfedge, h : Halfedge) -> &mut D{
-        self.hprop_.access_mut::<D>(prop,h)
+    fn index_mut(&mut self, (p,h): (PropertyHalfedge<D>,Halfedge)) -> &mut D {
+        &mut self.hprop_[(p,h)]
     }
 }
 
@@ -1076,7 +1089,6 @@ impl PropertyAccess<Halfedge> for Properties {
 mod tests {
     use super::*;
     use super::super::handle::Vertex;
-    use property::PropertyAccess;
 
     #[test]
     fn add_vertex() {
@@ -1150,9 +1162,9 @@ mod tests {
         // Vertex
         let prop = m.properties.add_vertex_property::<u32>("v:my_prop",17).unwrap();
         let v0 = m.add_vertex();
-        assert_eq!(*m.properties.access::<u32>(prop,v0),17);
-        *m.properties.access_mut::<u32>(prop,v0) = 42;
-        assert_eq!(*m.properties.access::<u32>(prop,v0),42);
+        assert_eq!(m.properties[(prop,v0)],17);
+        m.properties[(prop,v0)] = 42;
+        assert_eq!(m.properties[(prop,v0)],42);
 
         // Face
         let prop = m.properties.add_face_property::<u32>("f:my_prop",17).unwrap();
@@ -1163,23 +1175,23 @@ mod tests {
         vvec.push(v1);
         vvec.push(v2);
         let f = m.add_face(&vvec).unwrap();
-        assert_eq!(*m.properties.access::<u32>(prop,f),17);
-        *m.properties.access_mut::<u32>(prop,f) = 42;
-        assert_eq!(*m.properties.access::<u32>(prop,f),42);
+        assert_eq!(m.properties[(prop,f)],17);
+        m.properties[(prop,f)] = 42;
+        assert_eq!(m.properties[(prop,f)],42);
 
         // Edge
         let prop = m.properties.add_edge_property::<u32>("v:my_prop",17).unwrap();
         let e = m.topology.edge(m.topology.find_halfedge(v0,v1).unwrap());
-        assert_eq!(*m.properties.access::<u32>(prop,e),17);
-        *m.properties.access_mut::<u32>(prop,e) = 42;
-        assert_eq!(*m.properties.access::<u32>(prop,e),42);
+        assert_eq!(m.properties[(prop,e)],17);
+        m.properties[(prop,e)] = 42;
+        assert_eq!(m.properties[(prop,e)],42);
 
         // Halfedge
         let prop = m.properties.add_halfedge_property::<u32>("v:my_prop",17).unwrap();
         let h = m.topology.find_halfedge(v2,v0).unwrap();
-        assert_eq!(*m.properties.access::<u32>(prop,h),17);
-        *m.properties.access_mut::<u32>(prop,h) = 42;
-        assert_eq!(*m.properties.access::<u32>(prop,h),42);
+        assert_eq!(m.properties[(prop,h)],17);
+        m.properties[(prop,h)] = 42;
+        assert_eq!(m.properties[(prop,h)],42);
     }
 
     #[test]
@@ -1188,6 +1200,6 @@ mod tests {
         let mut m = Mesh::new();
         let prop = m.properties.get_vertex_property::<u32>("v:my_prop").unwrap();
         let v0 = m.add_vertex();
-        m.properties.access::<u32>(prop,v0);
+        m.properties[(prop,v0)];
     }
 }

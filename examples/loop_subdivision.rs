@@ -2,7 +2,6 @@ extern crate lwmesh;
 extern crate nalgebra;
 use lwmesh::mesh::Mesh;
 use lwmesh::handle::*;
-use lwmesh::property::PropertyAccess;
 use nalgebra::Vector3;
 
 fn loop_subdivision(m : &mut Mesh) -> Mesh {
@@ -17,11 +16,11 @@ fn loop_subdivision(m : &mut Mesh) -> Mesh {
     subdiv.vertex_reserve(m.topology.n_vertices());
     for v in m.topology.vertices() {
         let sv = subdiv.add_vertex();
-        *m.properties.access_mut::<Option<Vertex>>(vmap,v) = Some(sv);
+        m.properties[(vmap,v)] = Some(sv);
         let mut new_pos = Vector3::<f32>::new(0.,0.,0.);
         let mut deg = 0u32;
         for u in m.topology.vertices_around_vertex(v) {
-            new_pos += *m.properties.access::<Vector3<f32>>(pos,u);
+            new_pos += m.properties[(pos,u)];
             deg+=1;
         }
         let beta : f32;
@@ -34,24 +33,24 @@ fn loop_subdivision(m : &mut Mesh) -> Mesh {
             panic!();
         }
         new_pos *= beta;
-        new_pos += (1.-beta*deg as f32)*(*m.properties.access::<Vector3<f32>>(pos,v));
-        *subdiv.properties.access_mut::<Vector3<f32>>(spos,sv) = new_pos;
+        new_pos += (1.-beta*deg as f32)*(m.properties[(pos,v)]);
+        subdiv.properties[(spos,sv)] = new_pos;
     }
 
     for e in m.topology.edges() {
         let sv = subdiv.add_vertex();
-        *m.properties.access_mut::<Option<Vertex>>(emap,e) = Some(sv);
+        m.properties[(emap,e)] = Some(sv);
         let h = m.topology.edge_halfedge(e,0);
         let v0 = m.topology.to_vertex(h);
         let v2 = m.topology.from_vertex(h);
         let v1 = m.topology.to_vertex(m.topology.next_halfedge(h));
         let v3 = m.topology.to_vertex(m.topology.next_halfedge(m.topology.opposite_halfedge(h)));
         let mut new_pos = Vector3::<f32>::new(0.,0.,0.);
-        new_pos += 3./8. * m.properties.access::<Vector3<f32>>(pos,v0);
-        new_pos += 3./8. * m.properties.access::<Vector3<f32>>(pos,v2);
-        new_pos += 1./8. * m.properties.access::<Vector3<f32>>(pos,v1);
-        new_pos += 1./8. * m.properties.access::<Vector3<f32>>(pos,v3);
-        *subdiv.properties.access_mut::<Vector3<f32>>(spos,sv) = new_pos;
+        new_pos += 3./8. * m.properties[(pos,v0)];
+        new_pos += 3./8. * m.properties[(pos,v2)];
+        new_pos += 1./8. * m.properties[(pos,v1)];
+        new_pos += 1./8. * m.properties[(pos,v3)];
+        subdiv.properties[(spos,sv)] = new_pos;
     }
 
     for f in m.topology.faces() {
@@ -59,7 +58,7 @@ fn loop_subdivision(m : &mut Mesh) -> Mesh {
         let mut ve : [Vertex;3] = [Vertex::new(0);3];
         for (i,h) in m.topology.halfedges_around_face(f).enumerate() {
             let e = m.topology.edge(h);
-            ve[i] = m.properties.access_mut::<Option<Vertex>>(emap,e).unwrap();
+            ve[i] = m.properties[(emap,e)].unwrap();
             v[i] = m.topology.from_vertex(h);
         }
         subdiv.add_face(&vec![v[0],ve[0],ve[2]]);
