@@ -37,7 +37,7 @@ impl<A> Handle<A> {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::Vertex;
     ///
     /// let v = Vertex::new(3);
     /// ```
@@ -53,7 +53,7 @@ impl<A> Handle<A> {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::Vertex;
     ///
     /// let v = Vertex::new(42);
     /// assert!(v.idx()==42);

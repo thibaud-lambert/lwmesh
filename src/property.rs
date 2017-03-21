@@ -81,15 +81,6 @@ pub struct PropertyContainer<H> {
 
 impl<T : 'static> PropertyContainer<Handle<T>> {
     /// Constructs a new `PropertyContainer`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use lwmesh::property::PropertyContainer;
-    /// use lwmesh::handle::Vertex;
-    ///
-    /// let pcontainer = PropertyContainer::<Vertex>::new();
-    /// ```
     pub fn new() -> PropertyContainer<Handle<T>>{
         PropertyContainer {
             handle_ : PhantomData,
@@ -99,35 +90,7 @@ impl<T : 'static> PropertyContainer<Handle<T>> {
         }
     }
 
-    /// Returns the number of elements in the `PropertyContainer`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use lwmesh::property::PropertyContainer;
-    /// use lwmesh::handle::Vertex;
-    ///
-    /// let mut pcontainer = PropertyContainer::<Vertex>::new();
-    /// assert!(pcontainer.len() == 0);
-    /// pcontainer.push();
-    /// assert!(pcontainer.len() == 1);
-    /// ```
-    pub fn len(&self) -> usize() {
-        self.size_
-    }
-
     /// Reserve the minimun capacity to store at least `size` elements in the given `PropertyContainer`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use lwmesh::property::PropertyContainer;
-    /// use lwmesh::handle::Vertex;
-    ///
-    /// let mut pcontainer = PropertyContainer::<Vertex>::new();
-    /// pcontainer.reserve(42);
-    /// assert!(pcontainer.capacity() >= 42);
-    /// ```
     pub fn reserve(&mut self, size : usize) {
         self.capacity_ = size;
         for &mut(_, ref mut b) in self.parrays_.iter_mut() {
@@ -135,39 +98,7 @@ impl<T : 'static> PropertyContainer<Handle<T>> {
         }
     }
 
-    /// Returns the number of elements the given `PropertyContainer` can hold without reallocating.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use lwmesh::property::PropertyContainer;
-    /// use lwmesh::handle::Vertex;
-    ///
-    /// let mut pcontainer = PropertyContainer::<Vertex>::new();
-    /// assert!(pcontainer.capacity() == 0);
-    /// pcontainer.reserve(42);
-    /// assert!(pcontainer.capacity() >= 42);
-    /// ```
-    pub fn capacity(& self) -> usize {
-        self.capacity_
-    }
-
     /// Add a property with default value. If a property with this name already exists, return `None`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use lwmesh::property::PropertyContainer;
-    /// use lwmesh::handle::Vertex;
-    ///
-    /// let mut pcontainer = PropertyContainer::<Vertex>::new();
-    ///
-    /// let prop = pcontainer.add::<u32>("my_prop",0);
-    /// assert!(prop.is_some());
-    ///
-    /// let prop = pcontainer.add::<u32>("my_prop",0);
-    /// assert!(prop.is_none());
-    /// ```
     pub fn add<D : 'static + Clone>(&mut self, name : & 'static str, default_value : D) -> Option<Handle<(T,D)> > {
         for &(n, _) in self.parrays_.iter() {
             if n == name {
@@ -185,24 +116,6 @@ impl<T : 'static> PropertyContainer<Handle<T>> {
     }
 
     /// Get a property by its name. If it does not exist, return `None`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use lwmesh::property::PropertyContainer;
-    /// use lwmesh::handle::Vertex;
-    ///
-    /// let mut pcontainer = PropertyContainer::<Vertex>::new();
-    ///
-    /// let prop = pcontainer.get::<u32>("my_prop");
-    /// assert!(prop.is_none());
-    ///
-    /// let prop = pcontainer.add::<u32>("my_prop",0);
-    /// assert!(prop.is_some());
-    ///
-    /// let prop = pcontainer.get::<u32>("my_prop");
-    /// assert!(prop.is_some());
-    /// ```
     pub fn get<D : 'static + Clone>(&self, name : & 'static str) -> Option<Handle<(T,D)> > {
         for (i, &(n, ref b)) in self.parrays_.iter().enumerate() {
             if n == name {
@@ -215,22 +128,6 @@ impl<T : 'static> PropertyContainer<Handle<T>> {
     }
 
     /// Adds a new element to all existing Property.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// ```
-    /// use lwmesh::property::PropertyContainer;
-    /// use lwmesh::handle::Vertex;
-    ///
-    /// let mut pcontainer = PropertyContainer::<Vertex>::new();
-    ///
-    /// let prop = pcontainer.add::<u32>("my_prop",17).unwrap();
-    /// assert_eq!(prop.len(),0);
-    /// let v = prop.push();
-    /// assert_eq!(prop.len(),1);
-    /// assert!(v.is_valid());
-    /// ```
     pub fn push(&mut self){
         self.size_ += 1;
         for &mut(_, ref mut b) in self.parrays_.iter_mut() {
@@ -243,17 +140,6 @@ impl<T : 'static, D : 'static> Index<(Handle<(T,D)>,Handle<T>)> for PropertyCont
     type Output = D;
 
     /// Access the element of the vertex 'Property' prop indexing by 'Vertex' v.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use lwmesh::mesh::Mesh;
-    ///
-    /// let mut m = Mesh::new();
-    /// let prop = m.properties.add_vertex_property::<u32>("v:my_prop",17).unwrap();
-    /// let v0 = m.add_vertex();
-    /// assert_eq!(m.properties[(prop,v0)],17);
-    /// ```
     fn index(&self, (p,h): (Handle<(T,D)>,Handle<T>)) -> &D {
         let (_,ref b) = self.parrays_[p.idx()];
         let pa : &PropertyVec<Handle<T>,D> = b.as_any().downcast_ref::<PropertyVec<Handle<T>,D>>().unwrap();
@@ -264,19 +150,6 @@ impl<T : 'static, D : 'static> Index<(Handle<(T,D)>,Handle<T>)> for PropertyCont
 impl<T : 'static, D : 'static> IndexMut<(Handle<(T,D)>,Handle<T>)> for PropertyContainer<Handle<T>> {
 
     /// Mutable access to the element of the vertex 'Property' prop indexing by 'Vertex' v.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use lwmesh::mesh::Mesh;
-    ///
-    /// let mut m = Mesh::new();
-    /// let prop = m.properties.add_vertex_property::<u32>("v:my_prop",17).unwrap();
-    /// let v0 = m.add_vertex();
-    /// assert_eq!(m.properties[(prop,v0)],17);
-    /// m.properties[(prop,v0)] = 42;
-    /// assert_eq!(m.properties[(prop,v0)],42);
-    /// ```
     fn index_mut(&mut self, (p,h): (Handle<(T,D)>,Handle<T>)) -> &mut D {
         let (_,ref mut b) = self.parrays_[p.idx()];
         let pa : &mut PropertyVec<Handle<T>,D> = b.as_any_mut().downcast_mut::<PropertyVec<Handle<T>,D>>().unwrap();
@@ -291,23 +164,34 @@ mod tests {
     use handle::Vertex;
 
     #[test]
-    fn reserve() {
+    fn len() {
+        let mut pcontainer = PropertyContainer::<Vertex>::new();
+        assert!(pcontainer.size_ == 0);
+        pcontainer.push();
+        assert!(pcontainer.size_ == 1);
+        pcontainer.push();
+        pcontainer.push();
+        assert!(pcontainer.size_ == 3);
+    }
+
+    #[test]
+    fn reserve_and_capacity() {
         let mut pcontainer = PropertyContainer::<Vertex>::new();
         pcontainer.reserve(16);
-        assert!(16 <= pcontainer.capacity());
+        assert!(16 <= pcontainer.capacity_);
         pcontainer.reserve(33);
-        assert!(33 <= pcontainer.capacity());
+        assert!(33 <= pcontainer.capacity_);
     }
 
     #[test]
     fn push() {
         let mut pcontainer = PropertyContainer::<Vertex>::new();
-        assert!(pcontainer.len() == 0);
+        assert!(pcontainer.size_ == 0);
         let size = 5;
         for _ in 0..size {
             pcontainer.push();
         }
-        assert!(pcontainer.len() == size);
+        assert!(pcontainer.size_ == size);
     }
 
     #[test]
@@ -334,7 +218,7 @@ mod tests {
     fn reserve_and_add() {
         let mut pcontainer = PropertyContainer::<Vertex>::new();
         pcontainer.reserve(17);
-        assert!(17 <= pcontainer.capacity());
+        assert!(17 <= pcontainer.capacity_);
         let prop = pcontainer.add::<u32>("v:my_prop",0).unwrap();
         let (_,ref b) = pcontainer.parrays_[prop.idx()];
         let pa = b.as_any().downcast_ref::<PropertyVec<Vertex,u32>>().unwrap();
@@ -345,12 +229,12 @@ mod tests {
     fn push_and_add() {
         let mut pcontainer = PropertyContainer::<Vertex>::new();
         pcontainer.push();
-        let v0 = Vertex::new(pcontainer.len()-1);
-        assert!(1 == pcontainer.len());
+        let v0 = Vertex::new(pcontainer.size_-1);
+        assert!(1 == pcontainer.size_);
         let prop = pcontainer.add::<u32>("v:my_prop",17).unwrap();
         pcontainer.push();
-        let v1 = Vertex::new(pcontainer.len()-1);
-        assert!(2 == pcontainer.len());
+        let v1 = Vertex::new(pcontainer.size_-1);
+        assert!(2 == pcontainer.size_);
         assert_eq!(pcontainer[(prop,v0)],17);
         assert_eq!(pcontainer[(prop,v1)],17);
     }
@@ -360,7 +244,7 @@ mod tests {
         let mut pcontainer = PropertyContainer::<Vertex>::new();
         let prop = pcontainer.add::<u32>("v:my_prop",17).unwrap();
         pcontainer.push();
-        let v = Vertex::new(pcontainer.len()-1);
+        let v = Vertex::new(pcontainer.size_-1);
         assert_eq!(pcontainer[(prop,v)],17);
         pcontainer[(prop,v)] = 42;
         assert_eq!(pcontainer[(prop,v)],42);

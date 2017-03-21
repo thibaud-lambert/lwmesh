@@ -35,7 +35,7 @@ impl Mesh {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let mut m = Mesh::load("cube.obj").ok().unwrap();
     /// ```
@@ -60,7 +60,7 @@ impl Mesh {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let mut m = Mesh::load("cube.obj").ok().unwrap();
     /// ```
@@ -88,7 +88,7 @@ impl Mesh {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let mut m = Mesh::load("cube.obj").ok().unwrap();
     /// ```
@@ -113,7 +113,7 @@ impl Mesh {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let mut m = Mesh::load("cube.obj").ok().unwrap();
     /// m.write("cube2.obj");

@@ -15,7 +15,7 @@ impl Topology {
         Topology {
             vconn_ : PropertyVec::<Vertex,VertexConnectivity>::new(VertexConnectivity::invalid()),
             hconn_ : PropertyVec::<Halfedge,HalfedgeConnectivity>::new(HalfedgeConnectivity::invalid()),
-            fconn_ : PropertyVec::<Face,FaceConnectivity>::new(FaceConnectivity::new(Halfedge::new(0))),
+            fconn_ : PropertyVec::<Face,FaceConnectivity>::new(FaceConnectivity::invalid()),
         }
     }
 
@@ -24,7 +24,7 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let mut m = Mesh::new();
     /// let v1 = m.add_vertex();
@@ -40,8 +40,8 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::Mesh;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let mut vvec = Vec::<Vertex>::new();
@@ -60,8 +60,8 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::Mesh;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let mut vvec = Vec::<Vertex>::new();
@@ -80,8 +80,8 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::Mesh;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let mut vvec = Vec::<Vertex>::new();
@@ -100,7 +100,7 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let mut m = Mesh::new();
     /// let v = m.add_vertex();
@@ -119,8 +119,8 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::Mesh;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let mut vvec = Vec::<Vertex>::new();
@@ -142,8 +142,8 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::Mesh;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let mut vvec = Vec::<Vertex>::new();
@@ -163,8 +163,8 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::Mesh;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let mut vvec = Vec::<Vertex>::new();
@@ -184,8 +184,8 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::Mesh;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let mut vvec = Vec::<Vertex>::new();
@@ -205,8 +205,8 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::Mesh;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let mut vvec = Vec::<Vertex>::new();
@@ -226,8 +226,8 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::Mesh;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let mut vvec = Vec::<Vertex>::new();
@@ -248,8 +248,8 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::Mesh;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let mut vvec = Vec::<Vertex>::new();
@@ -269,8 +269,8 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::Mesh;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let mut vvec = Vec::<Vertex>::new();
@@ -290,8 +290,8 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::Mesh;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let mut vvec = Vec::<Vertex>::new();
@@ -315,8 +315,8 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::Mesh;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let mut vvec = Vec::<Vertex>::new();
@@ -340,8 +340,8 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::Mesh;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let mut vvec = Vec::<Vertex>::new();
@@ -367,8 +367,8 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::Mesh;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let mut vvec = Vec::<Vertex>::new();
@@ -390,8 +390,8 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::Mesh;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let mut vvec = Vec::<Vertex>::new();
@@ -481,7 +481,7 @@ impl Properties {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let mut m = Mesh::new();
     /// let pv = m.properties.add_vertex_property::<u32>("v:my_prop",17);
@@ -496,7 +496,7 @@ impl Properties {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let mut m = Mesh::new();
     /// let pf = m.properties.add_face_property::<u32>("f:my_prop",17);
@@ -511,7 +511,7 @@ impl Properties {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let mut m = Mesh::new();
     /// let pe = m.properties.add_edge_property::<u32>("e:my_prop",17);
@@ -526,7 +526,7 @@ impl Properties {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let mut m = Mesh::new();
     /// let ph = m.properties.add_halfedge_property::<u32>("h:my_prop",17);
@@ -541,7 +541,7 @@ impl Properties {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let mut m = Mesh::new();
     /// m.properties.add_vertex_property::<u32>("v:my_prop",17);
@@ -557,7 +557,7 @@ impl Properties {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let mut m = Mesh::new();
     /// m.properties.add_face_property::<u32>("f:my_prop",17);
@@ -573,7 +573,7 @@ impl Properties {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let mut m = Mesh::new();
     /// m.properties.add_edge_property::<u32>("e:my_prop",17);
@@ -589,7 +589,7 @@ impl Properties {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let mut m = Mesh::new();
     /// m.properties.add_halfedge_property::<u32>("h:my_prop",17);
@@ -614,7 +614,7 @@ impl Mesh {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let m = Mesh::new();
     /// ```
@@ -630,7 +630,7 @@ impl Mesh {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let mut m = Mesh::new();
     /// m.vertex_reserve(15);
@@ -646,7 +646,7 @@ impl Mesh {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let mut m = Mesh::new();
     /// m.vertex_reserve(15);
@@ -661,7 +661,7 @@ impl Mesh {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let mut m = Mesh::new();
     /// m.face_reserve(17);
@@ -677,7 +677,7 @@ impl Mesh {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let mut m = Mesh::new();
     /// m.face_reserve(17);
@@ -692,7 +692,7 @@ impl Mesh {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let mut m = Mesh::new();
     /// m.edge_reserve(17);
@@ -709,7 +709,7 @@ impl Mesh {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let mut m = Mesh::new();
     /// m.edge_reserve(17);
@@ -724,7 +724,7 @@ impl Mesh {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let mut m = Mesh::new();
     /// let v = m.add_vertex();
@@ -740,7 +740,7 @@ impl Mesh {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let mut m = Mesh::new();
     /// let vec = m.add_vertices(17);
@@ -766,8 +766,8 @@ impl Mesh {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::Mesh;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let mut vvec = Vec::<Vertex>::new();
@@ -808,7 +808,7 @@ impl Mesh {
         self.properties.fprop_.push();
         self.topology.fconn_.push();
         let f = Face::new(self.topology.fconn_.len()-1);
-        self.topology.fconn_[f] = FaceConnectivity::new(hvec[n-1].unwrap());
+        self.topology.fconn_[f].halfedge_ = hvec[n-1].unwrap();
 
         // Setup halfedges
         let mut next_cache : Vec<(Halfedge,Halfedge)> = Vec::new();
@@ -894,7 +894,7 @@ impl<D : 'static> Index<(PropertyVertex<D>,Vertex)> for Properties {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let mut m = Mesh::new();
     /// let prop = m.properties.add_vertex_property::<u32>("v:my_prop",17).unwrap();
@@ -913,7 +913,7 @@ impl<D : 'static> IndexMut<(PropertyVertex<D>,Vertex)> for Properties {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let mut m = Mesh::new();
     /// let prop = m.properties.add_vertex_property::<u32>("v:my_prop",17).unwrap();
@@ -935,8 +935,8 @@ impl<D : 'static> Index<(PropertyFace<D>,Face)> for Properties {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::Mesh;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let prop = m.properties.add_face_property::<u32>("f:my_prop",17).unwrap();
@@ -959,8 +959,8 @@ impl<D : 'static> IndexMut<(PropertyFace<D>,Face)> for Properties {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::Mesh;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let prop = m.properties.add_face_property::<u32>("f:my_prop",17).unwrap();
@@ -986,8 +986,8 @@ impl<D : 'static> Index<(PropertyEdge<D>,Edge)> for Properties {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::Mesh;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let prop = m.properties.add_face_property::<u32>("f:my_prop",17).unwrap();
@@ -1010,8 +1010,8 @@ impl<D : 'static> IndexMut<(PropertyEdge<D>,Edge)> for Properties {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::Mesh;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let prop = m.properties.add_edge_property::<u32>("e:my_prop",17).unwrap();
@@ -1038,8 +1038,8 @@ impl<D : 'static> Index<(PropertyHalfedge<D>,Halfedge)> for Properties {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::Mesh;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let prop = m.properties.add_halfedge_property::<u32>("h:my_prop",17).unwrap();
@@ -1065,8 +1065,8 @@ impl<D : 'static> IndexMut<(PropertyHalfedge<D>,Halfedge)> for Properties {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::Mesh;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let prop = m.properties.add_halfedge_property::<u32>("h:my_prop",17).unwrap();
@@ -1093,15 +1093,15 @@ mod tests {
     #[test]
     fn add_vertex() {
         let mut m = Mesh::new();
-        assert!(m.properties.vprop_.len() == 0);
+        assert!(m.topology.n_vertices() == 0);
 
         let v0 = m.add_vertex();
-        assert!(m.properties.vprop_.len() == 1);
+        assert!(m.topology.n_vertices() == 1);
         assert!(v0.idx() == 0);
 
         m.add_vertex();
         let v2 = m.add_vertex();
-        assert!(m.properties.vprop_.len() == 3);
+        assert!(m.topology.n_vertices() == 3);
         assert!(v2.idx() == 2);
     }
 

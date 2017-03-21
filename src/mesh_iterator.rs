@@ -200,7 +200,7 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
+    /// use lwmesh::Mesh;
     ///
     /// let mut m = Mesh::new();
     /// m.add_vertex();
@@ -223,8 +223,7 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let mut vvec = Vec::<Vertex>::new();
@@ -249,8 +248,7 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let mut vvec = Vec::<Vertex>::new();
@@ -275,8 +273,7 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let mut vvec = Vec::<Vertex>::new();
@@ -301,8 +298,7 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let mut vvec = Vec::<Vertex>::new();
@@ -329,8 +325,7 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let mut vvec = Vec::<Vertex>::new();
@@ -357,8 +352,7 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let mut vvec = Vec::<Vertex>::new();
@@ -399,8 +393,7 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let mut vvec = Vec::<Vertex>::new();
@@ -427,8 +420,7 @@ impl Topology {
     /// # Examples
     ///
     /// ```
-    /// use lwmesh::mesh::Mesh;
-    /// use lwmesh::handle::Vertex;
+    /// use lwmesh::*;
     ///
     /// let mut m = Mesh::new();
     /// let mut vvec = Vec::<Vertex>::new();

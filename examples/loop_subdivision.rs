@@ -1,7 +1,6 @@
 extern crate lwmesh;
 extern crate nalgebra;
-use lwmesh::mesh::Mesh;
-use lwmesh::handle::*;
+use lwmesh::*;
 use nalgebra::Vector3;
 
 fn loop_subdivision(m : &mut Mesh) -> Mesh {
