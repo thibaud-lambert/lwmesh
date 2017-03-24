@@ -12,6 +12,7 @@ use nalgebra::Vector3;
 pub enum MeshLoadingError {
     NoExtension,
     MissingPosition,
+    NotManifold,
     UnknwonExtension(OsString),
     Io(io::Error),
     Obj(LoadingError)
@@ -78,7 +79,15 @@ impl Mesh {
             for (i,_,_) in f {
                 vvec.push(Vertex::new(i));
             }
-            m.add_face(&vvec);
+            
+            let f = m.add_face(&vvec);
+            if f.is_none() {
+                vvec.reverse();
+                let f = m.add_face(&vvec);
+                if f.is_none() {
+                    return Err(MeshLoadingError::NotManifold);
+                }
+            }
         }
         return Ok(m);
     }

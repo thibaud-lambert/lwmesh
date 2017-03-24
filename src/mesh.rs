@@ -137,6 +137,29 @@ impl Topology {
         self.face(h).is_none()
     }
 
+    /// Returns if the `Halfedge` is on a boundary
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::Mesh;
+    /// use lwmesh::*;
+    ///
+    /// let mut m = Mesh::new();
+    /// let mut vvec = Vec::<Vertex>::new();
+    /// for _ in 0..3 {
+    ///     vvec.push(m.add_vertex());
+    /// }
+    /// let f = m.add_face(&vvec);
+    /// let h = m.topology.find_halfedge(vvec[0],vvec[1]).unwrap();
+    /// assert!(!m.topology.is_boundary_halfedge(h));
+    /// let oh = m.topology.opposite_halfedge(h);
+    /// assert!(m.topology.is_boundary_halfedge(oh));
+    /// ```
+    pub fn is_boundary_edge(&self, e : Edge) -> bool {
+        self.face(self.edge_halfedge(e,0)).is_none() || self.face(self.edge_halfedge(e,1)).is_none()
+    }
+
     /// Returns the `Face` incident to the `Halfedge`.
     ///
     /// # Examples
@@ -200,7 +223,7 @@ impl Topology {
         Halfedge::new(e.idx()*2+i)
     }
 
-    /// Returns an outgoing `Haldedge` of `Vertex` `v`.
+    /// Returns an outgoing `Haldedge` of `Face` `f`.
     ///
     /// # Examples
     ///
@@ -213,9 +236,9 @@ impl Topology {
     /// for _ in 0..3 {
     ///     vvec.push(m.add_vertex());
     /// }
-    /// let f = m.add_face(&vvec);
-    /// let h = m.topology.halfedge(vvec[0]).unwrap();
-    /// assert!(m.topology.from_vertex(h) == vvec[0]);
+    /// let f = m.add_face(&vvec).unwrap();
+    /// let h = m.topology.face_halfedge(f);
+    /// assert!(m.topology.face(h).unwrap() == f);
     /// ```
     pub fn face_halfedge(&self, f : Face) -> Halfedge {
         self.fconn_[f].halfedge_
@@ -780,9 +803,10 @@ impl Mesh {
     pub fn add_face(&mut self, vertices : & Vec<Vertex>) -> Option<Face> {
         let n = vertices.len();
         let mut hvec = Vec::<Option<Halfedge>>::new();
-        let mut new_hvec = Vec::<bool>::new();
         hvec.reserve(n);
+        let mut new_hvec = Vec::<bool>::new();
         new_hvec.reserve(n);
+        let mut next_cache : Vec<(Halfedge,Halfedge)> = Vec::new();
 
         // Does the face to add is valid
         for i in 0..n {
@@ -795,6 +819,37 @@ impl Mesh {
                 return None;
             }
         }
+
+        // re-link patches if necessary
+        for i in 0..n {
+            let ii = (i+1)%n;
+            if !new_hvec[i] && !new_hvec[ii] {
+                let inner_prev = hvec[i].unwrap();
+                let inner_next = hvec[ii].unwrap();
+                if self.topology.next_halfedge(inner_prev) != inner_next {
+                    let outer_prev = self.topology.opposite_halfedge(inner_next);
+                    let mut boundary_prev = outer_prev;
+                    loop {
+                        boundary_prev = self.topology.opposite_halfedge(self.topology.next_halfedge(boundary_prev));;
+                        if (self.topology.is_boundary_halfedge(boundary_prev)) && boundary_prev!=inner_prev {
+                            break;
+                        }
+                    }
+                    let boundary_next = self.topology.next_halfedge(boundary_prev);
+                    assert!(self.topology.is_boundary_halfedge(boundary_prev));
+                    assert!(self.topology.is_boundary_halfedge(boundary_next));
+                    if boundary_next == inner_next {
+                        return None;
+                    }
+                    let patch_start = self.topology.next_halfedge(inner_prev);
+                    let patch_end   = self.topology.prev_halfedge(inner_next);
+                    next_cache.push((boundary_prev, patch_start));
+                    next_cache.push((patch_end, boundary_next));
+                    next_cache.push((inner_prev, inner_next));
+                }
+            }
+        }
+
 
         // Create missing edges
         for i in 0..n {
@@ -811,7 +866,6 @@ impl Mesh {
         self.topology.fconn_[f].halfedge_ = hvec[n-1].unwrap();
 
         // Setup halfedges
-        let mut next_cache : Vec<(Halfedge,Halfedge)> = Vec::new();
         let mut needs_adjust : Vec<bool> = Vec::new();
         needs_adjust.resize(n,false);
         for i in 0..n {
@@ -1088,7 +1142,15 @@ impl<D : 'static> IndexMut<(PropertyHalfedge<D>,Halfedge)> for Properties {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::super::handle::Vertex;
+
+    fn add_face_and_test(m : &mut Mesh, vvec : &Vec<Vertex>) {
+        let f_nb = m.topology.n_faces();
+        let f = m.add_face(vvec);
+        assert!(f.is_some());
+        assert!(m.topology.n_faces() == f_nb+1);
+        let vvec_result : Vec<_> = m.topology.vertices_around_face(f.unwrap()).collect();
+        assert_eq!(vvec_result,*vvec);
+    }
 
     #[test]
     fn add_vertex() {
@@ -1121,38 +1183,56 @@ mod tests {
     #[test]
     fn add_face() {
         let mut m = Mesh::new();
-        let mut vvec = Vec::<Vertex>::new();
         let v0 = m.add_vertex();
         let v1 = m.add_vertex();
         let v2 = m.add_vertex();
         let v3 = m.add_vertex();
-        vvec.push(v0);
-        vvec.push(v1);
-        vvec.push(v2);
-        let f = m.add_face(&vvec);
-        assert!(f.is_some());
-        assert!(m.topology.n_faces() == 1);
 
-        vvec.clear();
-        vvec.push(v2);
-        vvec.push(v1);
-        vvec.push(v3);
-        let f = m.add_face(&vvec);
-        assert!(f.is_some());
-        assert!(m.topology.n_faces() == 2);
+        add_face_and_test(&mut m,&vec![v0,v1,v2]);
+        add_face_and_test(&mut m,&vec![v2,v1,v3]);
 
-        let f = m.add_face(&vvec);
-        assert!(f.is_none());
+        assert!(m.add_face(&vec![v2,v1,v3]).is_none());
         assert!(m.topology.n_faces() == 2);
 
         let v4 = m.add_vertex();
-        vvec.clear();
-        vvec.push(v2);
-        vvec.push(v1);
-        vvec.push(v4);
-        let f = m.add_face(&vvec);
-        assert!(f.is_none());
+        assert!(m.add_face(&vec![v2,v1,v4]).is_none());
         assert!(m.topology.n_faces() == 2);
+    }
+
+    #[test]
+    fn add_face_disjoint() {
+        let mut m = Mesh::new();
+        let v0 = m.add_vertex();
+        let v1 = m.add_vertex();
+        let v2 = m.add_vertex();
+
+        add_face_and_test(&mut m,&vec![v0,v1,v2]);
+
+        let v3 = m.add_vertex();
+        let v4 = m.add_vertex();
+        let v5 = m.add_vertex();
+
+        add_face_and_test(&mut m,&vec![v3,v4,v5]);
+
+        add_face_and_test(&mut m,&vec![v2,v1,v3]);
+    }
+
+    #[test]
+    fn add_face_complex() {
+        let mut m = Mesh::new();
+        let v0 = m.add_vertex();
+        let v1 = m.add_vertex();
+        let v2 = m.add_vertex();
+        add_face_and_test(&mut m,&vec![v0,v1,v2]);
+
+        let v3 = m.add_vertex();
+        let v4 = m.add_vertex();
+        add_face_and_test(&mut m,&vec![v0,v3,v4]);
+        let v5 = m.add_vertex();
+        let v6 = m.add_vertex();
+        add_face_and_test(&mut m,&vec![v0,v5,v6]);
+
+        add_face_and_test(&mut m,&vec![v0,v6,v1]);
     }
 
     #[test]

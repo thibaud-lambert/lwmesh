@@ -1,15 +1,15 @@
 use std::marker::PhantomData;
 use std::cmp::Ordering;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct PhantomVertex;
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct PhantomFace;
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct PhantomEdge;
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct PhantomHalfedge;
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct PhantomProperty;
 
 pub type Vertex = Handle<PhantomVertex>;
@@ -25,7 +25,7 @@ pub type PropertyHalfedge<T> = Handle<(PhantomHalfedge,T)>;
 ///
 /// `Handle<A>` is a nice encapsulation for an `usize`. It's an elegant way to manipulate
 /// elements (`Vertex`, `Face`, `Edge`, `Halfedge`).
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Handle<A> {
     type_ : PhantomData<A>,
     index_ : usize,
