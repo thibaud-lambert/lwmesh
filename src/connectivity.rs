@@ -23,7 +23,7 @@ pub struct FaceConnectivity {
 
 impl VertexConnectivity {
     /// Constructs an invalid `VertexConnectivity`.
-    pub fn invalid() -> VertexConnectivity {
+    pub fn new() -> VertexConnectivity {
         VertexConnectivity {
             halfedge_ : None,
         }
@@ -32,7 +32,7 @@ impl VertexConnectivity {
 
 impl HalfedgeConnectivity {
     /// Constructs an invalid `HalfedgeConnectivity`.
-    pub fn invalid() -> HalfedgeConnectivity {
+    pub fn new() -> HalfedgeConnectivity {
         HalfedgeConnectivity {
             face_ : None,
             vertex_ : Vertex::new(0),
@@ -44,7 +44,7 @@ impl HalfedgeConnectivity {
 
 impl FaceConnectivity {
     /// Constructs an invalid `FaceConnectivity`.
-    pub fn invalid() -> FaceConnectivity {
+    pub fn new() -> FaceConnectivity {
         FaceConnectivity {
             halfedge_ : Halfedge::new(0),
         }

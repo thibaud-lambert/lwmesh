@@ -1,5 +1,4 @@
 use std::marker::PhantomData;
-use std::cmp::Ordering;
 
 #[derive(Copy, Clone, Debug)]
 pub struct PhantomVertex;
@@ -63,18 +62,6 @@ impl<A> Handle<A> {
     }
 }
 
-impl<A> Ord for Handle<A> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.index_.cmp(&other.index_)
-    }
-}
-
-impl<A> PartialOrd for Handle<A> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.index_.cmp(&other.index_))
-    }
-}
-
 impl<A> PartialEq for Handle<A> {
     fn eq(&self, other: &Self) -> bool {
         self.index_ == other.index_
@@ -85,7 +72,6 @@ impl<A> Eq for Handle<A> { }
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::cmp::Ordering;
 
     #[test]
     fn idx() {
@@ -103,12 +89,6 @@ mod tests {
         let h3 = Vertex::new(idx1);
 
         assert!(h1!=h2);
-        assert!(h1>h2);
-        assert!(h2<h1);
         assert!(h1==h3);
-        assert!(h1<=h3);
-        assert_eq!(h2.cmp(&h1), Ordering::Less);
-        assert_eq!(h1.cmp(&h2), Ordering::Greater);
-        assert_eq!(h1.cmp(&h3), Ordering::Equal);
     }
 }

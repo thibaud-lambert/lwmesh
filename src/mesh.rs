@@ -13,9 +13,9 @@ pub struct Topology {
 impl Topology {
     pub fn new() -> Topology {
         Topology {
-            vconn_ : PropertyVec::<Vertex,VertexConnectivity>::new(VertexConnectivity::invalid()),
-            hconn_ : PropertyVec::<Halfedge,HalfedgeConnectivity>::new(HalfedgeConnectivity::invalid()),
-            fconn_ : PropertyVec::<Face,FaceConnectivity>::new(FaceConnectivity::invalid()),
+            vconn_ : PropertyVec::new(VertexConnectivity::new()),
+            hconn_ : PropertyVec::new(HalfedgeConnectivity::new()),
+            fconn_ : PropertyVec::new(FaceConnectivity::new()),
         }
     }
 
@@ -798,7 +798,7 @@ impl Mesh {
     ///     vvec.push(m.add_vertex());
     /// }
     /// let f = m.add_face(&vvec);
-    /// assert!(f.is_some());
+    /// # assert!(f.is_some());
     /// ```
     pub fn add_face(&mut self, vertices : & Vec<Vertex>) -> Option<Face> {
         let n = vertices.len();

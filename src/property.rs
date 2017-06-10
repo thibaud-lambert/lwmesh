@@ -76,7 +76,7 @@ pub struct PropertyContainer<H> {
     handle_ : PhantomData<H>,
     pub parrays_ : Vec<(& 'static str,Box<ResizableVec>)>,
     size_ : usize,
-    capacity_ : usize
+    capacity_ : usize,
 }
 
 impl<T : 'static> PropertyContainer<Handle<T>> {
@@ -118,10 +118,8 @@ impl<T : 'static> PropertyContainer<Handle<T>> {
     /// Get a property by its name. If it does not exist, return `None`.
     pub fn get<D : 'static + Clone>(&self, name : & 'static str) -> Option<Handle<(T,D)> > {
         for (i, &(n, ref b)) in self.parrays_.iter().enumerate() {
-            if n == name {
-                if b.as_any().downcast_ref::<PropertyVec<Handle<T>,D>>().is_some() {
-                    return Some(Handle::<(T,D)>::new(i));
-                }
+            if n == name && b.as_any().downcast_ref::<PropertyVec<Handle<T>,D>>().is_some() {
+                return Some(Handle::<(T,D)>::new(i));
             }
         }
         return None;
