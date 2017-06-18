@@ -22,3 +22,6 @@ pub use mesh::Mesh;
 pub use mesh::Topology;
 pub use mesh::Properties;
 pub mod mesh_iterator;
+pub use mesh_iterator::VerticesAround;
+pub use mesh_iterator::HalfedgesAround;
+pub use mesh_iterator::FacesAround;

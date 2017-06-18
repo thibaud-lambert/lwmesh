@@ -7,6 +7,7 @@ use mesh::*;
 use handle::*;
 use lwobj::*;
 use nalgebra::Vector3;
+use mesh_iterator::VerticesAround;
 
 #[derive(Debug)]
 pub enum MeshLoadingError {
@@ -79,7 +80,7 @@ impl Mesh {
             for (i,_,_) in f {
                 vvec.push(Vertex::new(i));
             }
-            
+
             let f = m.add_face(&vvec);
             if f.is_none() {
                 vvec.reverse();
@@ -144,7 +145,7 @@ impl Mesh {
         };
         for f in self.topology.faces() {
             let mut findex : Vec<(usize,Option<usize>,Option<usize>)> = Vec::new();
-            for v in self.topology.vertices_around_face(f) {
+            for v in self.topology.vertices_around(f) {
                 findex.push((v.idx(),None,None));
             }
             obj.primitives.push(f.idx());

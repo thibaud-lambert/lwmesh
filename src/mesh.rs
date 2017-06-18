@@ -1142,13 +1142,14 @@ impl<D : 'static> IndexMut<(PropertyHalfedge<D>,Halfedge)> for Properties {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mesh_iterator::VerticesAround;
 
     fn add_face_and_test(m : &mut Mesh, vvec : &Vec<Vertex>) {
         let f_nb = m.topology.n_faces();
         let f = m.add_face(vvec);
         assert!(f.is_some());
         assert!(m.topology.n_faces() == f_nb+1);
-        let vvec_result : Vec<_> = m.topology.vertices_around_face(f.unwrap()).collect();
+        let vvec_result : Vec<_> = m.topology.vertices_around(f.unwrap()).collect();
         assert_eq!(vvec_result,*vvec);
     }
 

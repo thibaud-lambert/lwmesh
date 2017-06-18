@@ -19,14 +19,14 @@ fn loop_subdivision(m : &mut Mesh) -> Mesh {
         let mut new_pos = Vector3::<f32>::new(0.,0.,0.);
         if m.topology.is_boundary_vertex(v) {
             new_pos += 0.75 * m.properties[(pos,v)];
-            for vn in m.topology.vertices_around_vertex(v) {
+            for vn in m.topology.vertices_around(v) {
                 if  m.topology.is_boundary_vertex(vn) {
                     new_pos += 0.125 * m.properties[(pos,vn)];
                 }
             }
         } else {
             let mut deg = 0u32;
-            for u in m.topology.vertices_around_vertex(v) {
+            for u in m.topology.vertices_around(v) {
                 new_pos += m.properties[(pos,u)];
                 deg+=1;
             }
@@ -69,7 +69,7 @@ fn loop_subdivision(m : &mut Mesh) -> Mesh {
     for f in m.topology.faces() {
         let mut v : [Vertex;3] = [Vertex::new(0);3];
         let mut ve : [Vertex;3] = [Vertex::new(0);3];
-        for (i,h) in m.topology.halfedges_around_face(f).enumerate() {
+        for (i,h) in m.topology.halfedges_around(f).enumerate() {
             let e = m.topology.edge(h);
             ve[i] = m.properties[(emap,e)].unwrap();
             v[i] = m.properties[(vmap,m.topology.from_vertex(h))].unwrap();

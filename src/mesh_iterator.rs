@@ -194,6 +194,179 @@ impl<'a> Iterator for HalfedgesAroundFaceCirculator<'a> {
     }
 }
 
+pub trait VerticesAround<'a,H,I> {
+    fn vertices_around(&'a self, handle : H) -> I;
+}
+
+impl<'a> VerticesAround<'a,Vertex,VerticesAroundVertexCirculator<'a> > for Topology {
+    /// Iterator over the vertices around a vertex in the `Mesh`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::*;
+    ///
+    /// let mut m = Mesh::new();
+    /// let mut vvec = Vec::<Vertex>::new();
+    /// for _ in 0..3 {
+    ///    vvec.push(m.add_vertex());
+    /// }
+    /// m.add_face(&vvec);
+    ///
+    /// for v in m.topology.vertices_around(vvec[0]) {
+    ///     println!("v{}",v.idx());
+    /// }
+    /// ```
+    fn vertices_around(&'a self, v : Vertex) -> VerticesAroundVertexCirculator<'a> {
+        VerticesAroundVertexCirculator::<'a> {
+            topology_ : &self,
+            end_ : self.halfedge(v),
+            curr_ : self.halfedge(v),
+            active_ : false
+        }
+    }
+}
+
+
+impl<'a> VerticesAround<'a,Face,VerticesAroundFaceCirculator<'a> > for Topology {
+    /// Iterator over the vertices in a face in the `Mesh`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::*;
+    ///
+    /// let mut m = Mesh::new();
+    /// let mut vvec = Vec::<Vertex>::new();
+    /// for _ in 0..3 {
+    ///    vvec.push(m.add_vertex());
+    /// }
+    /// let f = m.add_face(&vvec).unwrap();
+    ///
+    /// for v in m.topology.vertices_around(f) {
+    ///     println!("v{}",v.idx());
+    /// }
+    /// ```
+    fn vertices_around(&'a self, f : Face) -> VerticesAroundFaceCirculator<'a> {
+        VerticesAroundFaceCirculator::<'a> {
+            topology_ : &self,
+            end_ : self.face_halfedge(f),
+            curr_ : self.face_halfedge(f),
+            active_ : false
+        }
+    }
+}
+
+
+pub trait HalfedgesAround<'a,H,I> {
+    fn halfedges_around(&'a self, handle : H) -> I;
+}
+
+impl<'a> HalfedgesAround<'a,Vertex,HalfedgesAroundVertexCirculator<'a> > for Topology {
+    /// Iterator over the halfedges around a vertex in the `Mesh`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::*;
+    ///
+    /// let mut m = Mesh::new();
+    /// let mut vvec = Vec::<Vertex>::new();
+    /// for _ in 0..3 {
+    ///    vvec.push(m.add_vertex());
+    /// }
+    /// m.add_face(&vvec);
+    ///
+    /// for h in m.topology.halfedges_around(vvec[0]) {
+    ///     println!("h{}",h.idx());
+    /// }
+    /// ```
+    fn halfedges_around(&self, v : Vertex) -> HalfedgesAroundVertexCirculator {
+        HalfedgesAroundVertexCirculator {
+            topology_ : &self,
+            end_ : self.halfedge(v),
+            curr_ : self.halfedge(v),
+            active_ : false
+        }
+    }
+}
+
+impl<'a> HalfedgesAround<'a,Face,HalfedgesAroundFaceCirculator<'a> > for Topology {
+    /// Iterator over the halfedges in a face in the `Mesh`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::*;
+    ///
+    /// let mut m = Mesh::new();
+    /// let mut vvec = Vec::<Vertex>::new();
+    /// for _ in 0..3 {
+    ///    vvec.push(m.add_vertex());
+    /// }
+    /// let f = m.add_face(&vvec).unwrap();
+    ///
+    /// for h in m.topology.halfedges_around(f) {
+    ///     println!("h{}",h.idx());
+    /// }
+    /// ```
+    fn halfedges_around(&self, f : Face) -> HalfedgesAroundFaceCirculator {
+        HalfedgesAroundFaceCirculator {
+            topology_ : &self,
+            end_ : self.face_halfedge(f),
+            curr_ : self.face_halfedge(f),
+            active_ : false
+        }
+    }
+}
+
+pub trait FacesAround<'a,H,I> {
+    fn faces_around(&'a self, handle : H) -> I;
+}
+
+impl<'a> FacesAround<'a,Vertex,FacesAroundVertexCirculator<'a> > for Topology {
+    /// Iterator over the faces around a vertex in the `Mesh`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lwmesh::*;
+    ///
+    /// let mut m = Mesh::new();
+    /// let mut vvec = Vec::<Vertex>::new();
+    /// for _ in 0..3 {
+    ///    vvec.push(m.add_vertex());
+    /// }
+    /// m.add_face(&vvec);
+    ///
+    /// for f in m.topology.faces_around(vvec[0]) {
+    ///     println!("f{}",f.idx());
+    /// }
+    /// ```
+    fn faces_around(&self, v : Vertex) -> FacesAroundVertexCirculator {
+        match self.halfedge(v) {
+            None => FacesAroundVertexCirculator {
+                topology_ : &self,
+                end_ : None,
+                curr_ : None,
+                active_ : false
+            },
+            Some(x) => {
+                let mut h = x;
+                while self.is_boundary_halfedge(h) {
+                    h = self.cw_rotated_halfedge(h);
+                }
+                FacesAroundVertexCirculator {
+                    topology_ : &self,
+                    end_ : Some(h),
+                    curr_ : Some(h),
+                    active_ : false
+                }
+            },
+        }
+    }
+}
+
 impl Topology {
     /// Iterator over the vertices in the `Mesh`
     ///
@@ -292,161 +465,15 @@ impl Topology {
             curr_ : Halfedge::new(0),
         }
     }
-
-    /// Iterator over the vertices around a vertex in the `Mesh`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use lwmesh::*;
-    ///
-    /// let mut m = Mesh::new();
-    /// let mut vvec = Vec::<Vertex>::new();
-    /// for _ in 0..3 {
-    ///    vvec.push(m.add_vertex());
-    /// }
-    /// m.add_face(&vvec);
-    ///
-    /// for v in m.topology.vertices_around_vertex(vvec[0]) {
-    ///     println!("v{}",v.idx());
-    /// }
-    /// ```
-    pub fn vertices_around_vertex(&self, v : Vertex) -> VerticesAroundVertexCirculator {
-        VerticesAroundVertexCirculator {
-            topology_ : &self,
-            end_ : self.halfedge(v),
-            curr_ : self.halfedge(v),
-            active_ : false
-        }
-    }
-
-    /// Iterator over the halfedges around a vertex in the `Mesh`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use lwmesh::*;
-    ///
-    /// let mut m = Mesh::new();
-    /// let mut vvec = Vec::<Vertex>::new();
-    /// for _ in 0..3 {
-    ///    vvec.push(m.add_vertex());
-    /// }
-    /// m.add_face(&vvec);
-    ///
-    /// for h in m.topology.halfedges_around_vertex(vvec[0]) {
-    ///     println!("h{}",h.idx());
-    /// }
-    /// ```
-    pub fn halfedges_around_vertex(&self, v : Vertex) -> HalfedgesAroundVertexCirculator {
-        HalfedgesAroundVertexCirculator {
-            topology_ : &self,
-            end_ : self.halfedge(v),
-            curr_ : self.halfedge(v),
-            active_ : false
-        }
-    }
-
-    /// Iterator over the faces around a vertex in the `Mesh`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use lwmesh::*;
-    ///
-    /// let mut m = Mesh::new();
-    /// let mut vvec = Vec::<Vertex>::new();
-    /// for _ in 0..3 {
-    ///    vvec.push(m.add_vertex());
-    /// }
-    /// m.add_face(&vvec);
-    ///
-    /// for f in m.topology.faces_around_vertex(vvec[0]) {
-    ///     println!("f{}",f.idx());
-    /// }
-    /// ```
-    pub fn faces_around_vertex(&self, v : Vertex) -> FacesAroundVertexCirculator {
-        match self.halfedge(v) {
-            None => FacesAroundVertexCirculator {
-                topology_ : &self,
-                end_ : None,
-                curr_ : None,
-                active_ : false
-            },
-            Some(x) => {
-                let mut h = x;
-                while self.is_boundary_halfedge(h) {
-                    h = self.cw_rotated_halfedge(h);
-                }
-                FacesAroundVertexCirculator {
-                    topology_ : &self,
-                    end_ : Some(h),
-                    curr_ : Some(h),
-                    active_ : false
-                }
-            },
-        }
-    }
-
-    /// Iterator over the vertices in a face in the `Mesh`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use lwmesh::*;
-    ///
-    /// let mut m = Mesh::new();
-    /// let mut vvec = Vec::<Vertex>::new();
-    /// for _ in 0..3 {
-    ///    vvec.push(m.add_vertex());
-    /// }
-    /// let f = m.add_face(&vvec).unwrap();
-    ///
-    /// for v in m.topology.vertices_around_face(f) {
-    ///     println!("v{}",v.idx());
-    /// }
-    /// ```
-    pub fn vertices_around_face(&self, f : Face) -> VerticesAroundFaceCirculator {
-        VerticesAroundFaceCirculator {
-            topology_ : &self,
-            end_ : self.face_halfedge(f),
-            curr_ : self.face_halfedge(f),
-            active_ : false
-        }
-    }
-
-    /// Iterator over the halfedges in a face in the `Mesh`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use lwmesh::*;
-    ///
-    /// let mut m = Mesh::new();
-    /// let mut vvec = Vec::<Vertex>::new();
-    /// for _ in 0..3 {
-    ///    vvec.push(m.add_vertex());
-    /// }
-    /// let f = m.add_face(&vvec).unwrap();
-    ///
-    /// for h in m.topology.halfedges_around_face(f) {
-    ///     println!("h{}",h.idx());
-    /// }
-    /// ```
-    pub fn halfedges_around_face(&self, f : Face) -> HalfedgesAroundFaceCirculator {
-        HalfedgesAroundFaceCirculator {
-            topology_ : &self,
-            end_ : self.face_halfedge(f),
-            curr_ : self.face_halfedge(f),
-            active_ : false
-        }
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use mesh::*;
     use handle::Vertex;
+    use mesh_iterator::VerticesAround;
+    use mesh_iterator::HalfedgesAround;
+    use mesh_iterator::FacesAround;
 
     #[test]
     fn iterator_and_properties() {
@@ -492,31 +519,31 @@ mod tests {
         let f = m.add_face(&vvec).unwrap();
 
         let mut i = 0;
-        for _ in m.topology.vertices_around_vertex(vvec[0]) {
+        for _ in m.topology.vertices_around(vvec[0]) {
             i += 1;
         }
         assert_eq!(i,2);
 
         let mut i = 0;
-        for _ in m.topology.halfedges_around_vertex(vvec[0]) {
+        for _ in m.topology.halfedges_around(vvec[0]) {
             i += 1;
         }
         assert_eq!(i,2);
 
         let mut i = 0;
-        for _ in m.topology.faces_around_vertex(vvec[0]) {
+        for _ in m.topology.faces_around(vvec[0]) {
             i += 1;
         }
         assert_eq!(i,1);
 
         let mut i = 0;
-        for _ in m.topology.vertices_around_face(f) {
+        for _ in m.topology.vertices_around(f) {
             i += 1;
         }
         assert_eq!(i,3);
 
         let mut i = 0;
-        for _ in m.topology.halfedges_around_face(f) {
+        for _ in m.topology.halfedges_around(f) {
             i += 1;
         }
         assert_eq!(i,3);
@@ -527,17 +554,17 @@ mod tests {
         let mut m = Mesh::new();
         let v = m.add_vertex();
         let mut i = 0;
-        for _ in m.topology.vertices_around_vertex(v) {
+        for _ in m.topology.vertices_around(v) {
             i += 1;
         }
         assert_eq!(i,0);
         let mut i = 0;
-        for _ in m.topology.faces_around_vertex(v) {
+        for _ in m.topology.faces_around(v) {
             i += 1;
         }
         assert_eq!(i,0);
         let mut i = 0;
-        for _ in m.topology.halfedges_around_vertex(v) {
+        for _ in m.topology.halfedges_around(v) {
             i += 1;
         }
         assert_eq!(i,0);
